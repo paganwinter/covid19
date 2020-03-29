@@ -12,8 +12,9 @@ body {
 </head>
 <body>
 
-<canvas id="daily-new" width="800" height="400"></canvas>
-<canvas id="daily-change" width="800" height="400"></canvas>
+<h3>Total</h3>
+<canvas id="daily-new" width="800" height="600"></canvas>
+<canvas id="daily-change" width="800" height="600"></canvas>
 
 <br />
 <div>
@@ -31,6 +32,9 @@ const chartOpts = {
         ticks: {
           fontSize: 10,
         },
+        gridLines: {
+          tickMarkLength: 3,
+        },
       }
     ],
     xAxes: [
@@ -42,7 +46,7 @@ const chartOpts = {
           maxRotation: 90,
           minRotation: 90,
           autoSkip: true,
-          maxTicksLimit: 50,
+          maxTicksLimit: 20,
           fontSize: 10,
         },
       },
@@ -111,7 +115,7 @@ async function main() {
         }
       ]
     },
-    options: { ...chartOpts, title: { display: true, text: 'Change in New Confirmed Cases' } }
+    options: { ...chartOpts, title: { display: true, text: 'Change in New Confirmed Cases Daily' } }
   });
 }
 
