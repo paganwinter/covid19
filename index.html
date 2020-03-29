@@ -1,19 +1,43 @@
 <html>
 <head>
 <title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
   font-family: Arial;
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 </head>
 <body>
 
 <canvas id="daily-new" width="800" height="300"></canvas>
 <canvas id="daily-change" width="800" height="300"></canvas>
-<h5>Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a></h5>
+Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a><br />
+More graphs at <a href="https://aatishb.com/covidtrends">https://aatishb.com/covidtrends</a>
 
 <script>
+const chartOpts = {
+  legend: { display: false },
+  scales: {
+    yAxes: [ { position: 'right' } ],
+    xAxes: [
+      {
+        gridLines: {
+          display: false
+        },
+        ticks: {
+          maxRotation: 90,
+          minRotation: 90,
+          autoSkip: true,
+          maxTicksLimit: 50,
+        },
+      },
+    ],
+  },
+}
+
 async function main() {
   let res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/data.json')
   let data = await res.json()
@@ -47,19 +71,19 @@ async function main() {
   new Chart(document.getElementById("daily-new"), {
     type: 'bar',
     data: {
-      labels: cases.map(c => c.date),
+      labels: cases.map(c => c.date.substr(0, 6)),
       datasets: [
         {
-          label: "",
-          backgroundColor: "#002244",
+          label: "New cases",
           data: cases.map(c => c.dailyconfirmed),
+          backgroundColor: "#002244",
+          barPercentage: 0.1,
+          // barThickness: 6,
+          // maxBarThickness: 10,
         }
       ]
     },
-    options: {
-      legend: { display: false },
-      title: { display: true, text: 'Daily New Confirmed Cases' },
-    }
+    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } }
   });
 
   // daily-change
@@ -69,16 +93,13 @@ async function main() {
       labels: cases.map(c => c.date),
       datasets: [
         {
-          label: "",
+          label: "Change in cases",
           backgroundColor: "#002244",
           data: cases.map(c => c.changeConfirmed),
         }
       ]
     },
-    options: {
-      legend: { display: false },
-      title: { display: true, text: 'Change in New Confirmed Cases' },
-    }
+    options: { ...chartOpts, title: { display: true, text: 'Change in New Confirmed Cases' } }
   });
 }
 
@@ -87,7 +108,5 @@ window.onload = function () {
 }
 
 </script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 </body>
 </html>
