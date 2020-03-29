@@ -1,21 +1,90 @@
 <html>
 <head>
 <title></title>
+<style>
+body {
+  font-family: Arial;
+}
+</style>
 </head>
 <body>
+<h5>Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a></h5>
+
+<canvas id="daily-new" width="800" height="200"></canvas>
+<canvas id="daily-change" width="800" height="200"></canvas>
 
 <script>
-console.log('hi')
+async function main() {
+  let res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/data.json')
+  let data = await res.json()
+  console.log(data)
 
-fetch('https://raw.githubusercontent.com/covid19india/api/master/data.json')
-  .then((res) => {
-    return res.json()
+  let cases = data.cases_time_series
+  let yesterdays = cases[cases.length - 1]
+  let todays = data.key_values[0]
+  let todaysDate = todays.lastupdatedtime.split('/') // 29/03/2020 18:17:23
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]
+  cases.push({
+    dailyconfirmed: todays.confirmeddelta,
+    dailyrecovered: todays.recovereddelta,
+    dailydeceased: todays.deceaseddelta,
+    date: `${todaysDate[0]} ${months[todaysDate[1] - 1]} `, // '29 March ',
+    totalconfirmed: String(Number(yesterdays.totalconfirmed) + Number(todays.confirmeddelta)),
+    totalrecovered: String(Number(yesterdays.totalrecovered) + Number(todays.recovereddelta)),
+    totaldeceased: String(Number(yesterdays.totaldeceased) + Number(todays.deceaseddelta)),
   })
-  .then((data) => {
-    console.log(data)
-  })
+
+  let prevConfirm = 0
+  for (let day of cases) {
+    day.changeConfirmed = (day.dailyconfirmed - prevConfirm)
+    console.log(day)
+    console.log(day.dailyconfirmed, (day.dailyconfirmed - prevConfirm))
+    prevConfirm = day.dailyconfirmed
+  }
+  console.log(cases)
+
+  // daily-new
+  new Chart(document.getElementById("daily-new"), {
+    type: 'bar',
+    data: {
+      labels: cases.map(c => c.date),
+      datasets: [
+        {
+          label: "",
+          // backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850"],
+          data: cases.map(c => c.dailyconfirmed),
+        }
+      ]
+    },
+    options: {
+      legend: { display: false },
+      title: { display: true, text: 'Daily New Confirmed Cases' },
+    }
+  });
+
+  // daily-change
+  new Chart(document.getElementById("daily-change"), {
+    type: 'bar',
+    data: {
+      labels: cases.map(c => c.date),
+      datasets: [
+        {
+          label: "",
+          data: cases.map(c => c.changeConfirmed),
+        }
+      ]
+    },
+    options: {
+      legend: { display: false },
+      title: { display: true, text: 'Change in New Confirmed Cases' },
+    }
+  });
+}
+
+main()
 
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 </body>
 </html>
