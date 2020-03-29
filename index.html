@@ -8,10 +8,10 @@ body {
 </style>
 </head>
 <body>
-<h5>Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a></h5>
 
 <canvas id="daily-new" width="800" height="200"></canvas>
 <canvas id="daily-change" width="800" height="200"></canvas>
+<h5>Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a></h5>
 
 <script>
 async function main() {
@@ -51,7 +51,7 @@ async function main() {
       datasets: [
         {
           label: "",
-          // backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850"],
+          backgroundColor: "#002244",
           data: cases.map(c => c.dailyconfirmed),
         }
       ]
@@ -70,6 +70,7 @@ async function main() {
       datasets: [
         {
           label: "",
+          backgroundColor: "#002244",
           data: cases.map(c => c.changeConfirmed),
         }
       ]
