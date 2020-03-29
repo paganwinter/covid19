@@ -9,8 +9,8 @@ body {
 </head>
 <body>
 
-<canvas id="daily-new" width="800" height="200"></canvas>
-<canvas id="daily-change" width="800" height="200"></canvas>
+<canvas id="daily-new" width="800" height="300"></canvas>
+<canvas id="daily-change" width="800" height="300"></canvas>
 <h5>Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a></h5>
 
 <script>
@@ -82,7 +82,9 @@ async function main() {
   });
 }
 
-main()
+window.onload = function () {
+  main()
+}
 
 </script>
 
