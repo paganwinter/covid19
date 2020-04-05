@@ -13,13 +13,10 @@ body {
 </head>
 <body>
 
-<canvas id="graph-1" width="800" height="200"></canvas>
-<canvas id="graph-2" width="800" height="200"></canvas>
-
-<!--
-<canvas id="daily-new" width="800" height="600"></canvas>
-<canvas id="daily-change" width="800" height="600"></canvas>
--->
+<canvas id="graph-new-combined" width="800" height="400"></canvas>
+<canvas id="graph-total" width="800" height="400"></canvas>
+<canvas id="graph-3" width="800" height="400"></canvas>
+<canvas id="graph-4" width="800" height="400"></canvas>
 
 <br />
 <div>
@@ -73,11 +70,10 @@ async function main() {
   let data = await res.json()
   console.log(data)
 
-  let cases = data.cases_time_series
   let daywise = data.cases_time_series
 
-  let yesterdays = cases[cases.length - 1]
-
+  // let cases = data.cases_time_series
+  // let yesterdays = cases[cases.length - 1]
   // let todays = data.key_values[0]
   let todays = data.statewise.find(i => i.state === 'Total')
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]
@@ -101,56 +97,119 @@ async function main() {
     day.deltaconfirmed = (day.dailyconfirmed - prevConfirmed)
     day.deltarecovered = (day.dailyrecovered - prevRecovered)
     day.deltadeceased = (day.dailydeceased - prevDeceased)
-
     prevConfirmed = day.dailyconfirmed
     prevRecovered = day.dailyrecovered
     prevDeceased = day.dailydeceased
+
+    day.totalactive = day.totalconfirmed - day.totalrecovered - day.totaldeceased
+    day.percentactive = day.totalactive / day.totalconfirmed * 100
+    day.percentrecovered = day.totalrecovered / day.totalconfirmed * 100
+    day.percentdeceased = day.totaldeceased / day.totalconfirmed * 100
   }
   console.log(daywise)
 
-  new Chart(document.getElementById('graph-1'), {
+  new Chart(document.getElementById('graph-total'), {
     type: 'line',
     data: {
-      labels: cases.map(c => c.date.substr(0, 6)),
+      labels: daywise.map(c => c.date.substr(0, 6)),
       datasets: [
         {
           label: "Total cases",
-          data: cases.map(c => c.totalconfirmed),
+          data: daywise.map(c => c.totalconfirmed),
           type: 'line',
         },
       ]
     },
-    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } },
+    options: { ...chartOpts, title: { display: true, text: 'Total' } },
   })
-  new Chart(document.getElementById('graph-2'), {
+  new Chart(document.getElementById('graph-new-combined'), {
     type: 'bar',
     data: {
-      labels: cases.map(c => c.date.substr(0, 6)),
+      labels: daywise.map(c => c.date.substr(0, 6)),
       datasets: [
         {
           label: "New cases",
-          data: cases.map(c => c.dailyconfirmed),
+          data: daywise.map(c => c.dailyconfirmed),
           type: 'line',
-          // backgroundColor: "#002244",
-          // barPercentage: 0.1,
-          // barThickness: 6,
-          // maxBarThickness: 10,
         },
         {
           label: "Change ine new cases",
-          data: cases.map(c => c.deltaconfirmed),
+          data: daywise.map(c => c.deltaconfirmed),
         },
       ]
     },
-    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } },
+    options: { ...chartOpts, title: { display: true, text: 'New and Change in New' } },
+  })
+  new Chart(document.getElementById('graph-3'), {
+    type: 'bar',
+    data: {
+      labels: daywise.map(c => c.date.substr(0, 6)),
+      datasets: [
+        {
+          label: "Total Recovered",
+          data: daywise.map(c => c.totalrecovered),
+          backgroundColor: 'rgba(40,167,69,0.5)',
+        },
+        {
+          label: "Total Deceased",
+          data: daywise.map(c => c.totaldeceased),
+          backgroundColor: 'rgba(255,7,58,0.75)',
+        },
+        {
+          label: "Total Active",
+          data: daywise.map(c => (c.totalactive)),
+          backgroundColor: 'rgba(255,7,58,0.5)',
+        },
+      ]
+    },
+    options: {
+      ...chartOpts,
+      title: { display: true, text: 'Total' },
+      scales: {
+        xAxes: [ { stacked: true } ],
+        yAxes: [ { stacked: true } ]
+      },
+    },
+  })
+  new Chart(document.getElementById('graph-4'), {
+    type: 'bar',
+    data: {
+      labels: daywise.map(c => c.date.substr(0, 6)),
+      datasets: [
+        {
+          label: "Percent Recovered",
+          data: daywise.map(c => c.percentrecovered),
+          backgroundColor: 'rgba(40,167,69,0.5)',
+        },
+        {
+          label: "Percent Deceased",
+          data: daywise.map(c => c.percentdeceased),
+          backgroundColor: 'rgba(255,7,58,0.75)',
+        },
+        {
+          label: "Percent Active",
+          data: daywise.map(c => (c.percentactive)),
+          backgroundColor: 'rgba(255,7,58,0.5)',
+        },
+      ]
+    },
+    options: {
+      ...chartOpts,
+      title: { display: true, text: 'Total' },
+      scales: {
+        xAxes: [ { stacked: true } ],
+        yAxes: [ { stacked: true } ]
+      },
+    },
   })
 
   /*
-  // daily-new
-  new Chart(document.getElementById("daily-new"), {
-    type: 'bar',
-    data: {
-      labels: cases.map(c => c.date.substr(0, 6)),
+    '#ff073a',
+    '#28a745',
+    '#6c757d',
+    '#ff073a',
+    '#28a745',
+    '#6c757d'
       datasets: [
         {
           label: "New cases",
@@ -161,25 +220,6 @@ async function main() {
           // maxBarThickness: 10,
         }
       ]
-    },
-    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } }
-  });
-
-  // daily-change
-  new Chart(document.getElementById("daily-change"), {
-    type: 'bar',
-    data: {
-      labels: cases.map(c => c.date.substr(0, 6)),
-      datasets: [
-        {
-          label: "Change in cases",
-          backgroundColor: "#002244",
-          data: cases.map(c => c.changeConfirmed),
-        }
-      ]
-    },
-    options: { ...chartOpts, title: { display: true, text: 'Change in New Confirmed Cases Daily' } }
-  });
   */
 }
 
