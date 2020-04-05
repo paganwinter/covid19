@@ -9,12 +9,17 @@ body {
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="//d3js.org/d3.v3.min.js"></script>
 </head>
 <body>
 
-<h3>Total</h3>
+<canvas id="graph-1" width="800" height="200"></canvas>
+<canvas id="graph-2" width="800" height="200"></canvas>
+
+<!--
 <canvas id="daily-new" width="800" height="600"></canvas>
 <canvas id="daily-change" width="800" height="600"></canvas>
+-->
 
 <br />
 <div>
@@ -55,34 +60,92 @@ const chartOpts = {
 }
 
 async function main() {
+  /*
+  https://api.covid19india.org/data.json
+  https://api.covid19india.org/state_district_wise.json
+  https://api.covid19india.org/travel_history.json
+  https://api.covid19india.org/raw_data.json
+
+  https://raw.githubusercontent.com/covid19india/api/master/data.json
+  */
+
   let res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/data.json')
   let data = await res.json()
   console.log(data)
 
   let cases = data.cases_time_series
+  let daywise = data.cases_time_series
+
   let yesterdays = cases[cases.length - 1]
-  let todays = data.key_values[0]
-  let todaysDate = todays.lastupdatedtime.split('/') // 29/03/2020 18:17:23
+
+  // let todays = data.key_values[0]
+  let todays = data.statewise.find(i => i.state === 'Total')
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]
-  cases.push({
-    dailyconfirmed: todays.confirmeddelta,
-    dailyrecovered: todays.recovereddelta,
-    dailydeceased: todays.deceaseddelta,
+  let todaysDate = todays.lastupdatedtime.split('/') // 29/03/2020 18:17:23
+  todays = {
+    dailyconfirmed: todays.deltaconfirmed,
+    dailyrecovered: todays.deltarecovered,
+    dailydeceased: todays.deltadeaths,
     date: `${todaysDate[0]} ${months[todaysDate[1] - 1]} `, // '29 March ',
-    totalconfirmed: String(Number(yesterdays.totalconfirmed) + Number(todays.confirmeddelta)),
-    totalrecovered: String(Number(yesterdays.totalrecovered) + Number(todays.recovereddelta)),
-    totaldeceased: String(Number(yesterdays.totaldeceased) + Number(todays.deceaseddelta)),
+    totalconfirmed: todays.confirmed,
+    totalrecovered: todays.recovered,
+    totaldeceased: todays.deaths,
+  }
+  console.log(todays)
+  daywise.push(todays)
+
+  let prevConfirmed = 0
+  let prevRecovered = 0
+  let prevDeceased = 0
+  for (let day of daywise) {
+    day.deltaconfirmed = (day.dailyconfirmed - prevConfirmed)
+    day.deltarecovered = (day.dailyrecovered - prevRecovered)
+    day.deltadeceased = (day.dailydeceased - prevDeceased)
+
+    prevConfirmed = day.dailyconfirmed
+    prevRecovered = day.dailyrecovered
+    prevDeceased = day.dailydeceased
+  }
+  console.log(daywise)
+
+  new Chart(document.getElementById('graph-1'), {
+    type: 'line',
+    data: {
+      labels: cases.map(c => c.date.substr(0, 6)),
+      datasets: [
+        {
+          label: "Total cases",
+          data: cases.map(c => c.totalconfirmed),
+          type: 'line',
+        },
+      ]
+    },
+    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } },
+  })
+  new Chart(document.getElementById('graph-2'), {
+    type: 'bar',
+    data: {
+      labels: cases.map(c => c.date.substr(0, 6)),
+      datasets: [
+        {
+          label: "New cases",
+          data: cases.map(c => c.dailyconfirmed),
+          type: 'line',
+          // backgroundColor: "#002244",
+          // barPercentage: 0.1,
+          // barThickness: 6,
+          // maxBarThickness: 10,
+        },
+        {
+          label: "Change ine new cases",
+          data: cases.map(c => c.deltaconfirmed),
+        },
+      ]
+    },
+    options: { ...chartOpts, title: { display: true, text: 'Daily New Confirmed Cases' } },
   })
 
-  let prevConfirm = 0
-  for (let day of cases) {
-    day.changeConfirmed = (day.dailyconfirmed - prevConfirm)
-    console.log(day)
-    console.log(day.dailyconfirmed, (day.dailyconfirmed - prevConfirm))
-    prevConfirm = day.dailyconfirmed
-  }
-  console.log(cases)
-
+  /*
   // daily-new
   new Chart(document.getElementById("daily-new"), {
     type: 'bar',
@@ -117,6 +180,7 @@ async function main() {
     },
     options: { ...chartOpts, title: { display: true, text: 'Change in New Confirmed Cases Daily' } }
   });
+  */
 }
 
 window.onload = function () {
