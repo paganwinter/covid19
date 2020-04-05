@@ -14,9 +14,8 @@ body {
 <body>
 
 <canvas id="graph-new-combined" width="800" height="400"></canvas>
-<canvas id="graph-total" width="800" height="400"></canvas>
 <canvas id="graph-3" width="800" height="400"></canvas>
-<canvas id="graph-4" width="800" height="400"></canvas>
+<canvas id="graph-active" width="800" height="400"></canvas>
 
 <br />
 <div>
@@ -25,35 +24,17 @@ More graphs at <a href="https://aatishb.com/covidtrends">https://aatishb.com/cov
 </div>
 
 <script>
-const chartOpts = {
-  legend: { display: false },
-  scales: {
-    yAxes: [
-      {
-        position: 'right',
-        ticks: {
-          fontSize: 10,
-        },
-        gridLines: {
-          tickMarkLength: 3,
-        },
-      }
-    ],
-    xAxes: [
-      {
-        gridLines: {
-          display: false
-        },
-        ticks: {
-          maxRotation: 90,
-          minRotation: 90,
-          autoSkip: true,
-          maxTicksLimit: 20,
-          fontSize: 10,
-        },
-      },
-    ],
-  },
+const optsY_position = 'right'
+const optsY_ticks = { fontSize: 10 }
+const optsY_gridLines = { tickMarkLength: 3 }
+
+const optsX_gridLines = { display: false }
+const optsX_ticks = {
+  maxRotation: 90,
+  minRotation: 90,
+  autoSkip: true,
+  maxTicksLimit: 20,
+  fontSize: 10,
 }
 
 async function main() {
@@ -108,20 +89,6 @@ async function main() {
   }
   console.log(daywise)
 
-  new Chart(document.getElementById('graph-total'), {
-    type: 'line',
-    data: {
-      labels: daywise.map(c => c.date.substr(0, 6)),
-      datasets: [
-        {
-          label: "Total cases",
-          data: daywise.map(c => c.totalconfirmed),
-          type: 'line',
-        },
-      ]
-    },
-    options: { ...chartOpts, title: { display: true, text: 'Total' } },
-  })
   new Chart(document.getElementById('graph-new-combined'), {
     type: 'bar',
     data: {
@@ -138,68 +105,81 @@ async function main() {
         },
       ]
     },
-    options: { ...chartOpts, title: { display: true, text: 'New and Change in New' } },
+    options: {
+      title: { display: true, text: 'New and Change in New' },
+      scales: {
+        yAxes: [
+          {
+            position: optsY_position,
+            ticks: optsY_ticks,
+            gridLines: optsY_gridLines,
+          }
+        ],
+        xAxes: [ { ticks: optsX_ticks } ],
+      }
+    },
   })
   new Chart(document.getElementById('graph-3'), {
-    type: 'bar',
+    type: 'line',
     data: {
       labels: daywise.map(c => c.date.substr(0, 6)),
       datasets: [
         {
           label: "Total Recovered",
           data: daywise.map(c => c.totalrecovered),
-          backgroundColor: 'rgba(40,167,69,0.5)',
+          backgroundColor: 'lightgreen',
         },
         {
           label: "Total Deceased",
           data: daywise.map(c => c.totaldeceased),
-          backgroundColor: 'rgba(255,7,58,0.75)',
+          backgroundColor: 'red',
         },
         {
           label: "Total Active",
           data: daywise.map(c => (c.totalactive)),
-          backgroundColor: 'rgba(255,7,58,0.5)',
+          backgroundColor: 'lightblue',
         },
       ]
     },
     options: {
-      ...chartOpts,
       title: { display: true, text: 'Total' },
       scales: {
-        xAxes: [ { stacked: true } ],
-        yAxes: [ { stacked: true } ]
+        xAxes: [ { ticks: optsX_ticks } ],
+        yAxes: [
+          {
+            position: optsY_position,
+            ticks: optsY_ticks,
+            gridLines: optsY_gridLines,
+            stacked: true,
+          },
+        ],
       },
     },
   })
-  new Chart(document.getElementById('graph-4'), {
-    type: 'bar',
+
+  new Chart(document.getElementById('graph-active'), {
+    type: 'line',
     data: {
       labels: daywise.map(c => c.date.substr(0, 6)),
       datasets: [
         {
-          label: "Percent Recovered",
-          data: daywise.map(c => c.percentrecovered),
-          backgroundColor: 'rgba(40,167,69,0.5)',
-        },
-        {
-          label: "Percent Deceased",
-          data: daywise.map(c => c.percentdeceased),
-          backgroundColor: 'rgba(255,7,58,0.75)',
-        },
-        {
-          label: "Percent Active",
-          data: daywise.map(c => (c.percentactive)),
-          backgroundColor: 'rgba(255,7,58,0.5)',
+          label: "Total Active",
+          data: daywise.map(c => c.totalactive),
         },
       ]
     },
     options: {
-      ...chartOpts,
-      title: { display: true, text: 'Total' },
+      title: { display: true, text: 'Total Active' },
       scales: {
-        xAxes: [ { stacked: true } ],
-        yAxes: [ { stacked: true } ]
-      },
+        yAxes: [
+          {
+            position: optsY_position,
+            ticks: optsY_ticks,
+            gridLines: optsY_gridLines,
+          }
+        ],
+        xAxes: [ { ticks: optsX_ticks } ],
+      }
     },
   })
 
