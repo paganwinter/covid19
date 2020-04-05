@@ -13,9 +13,9 @@ body {
 </head>
 <body>
 
-<canvas id="graph-new-combined" width="800" height="400"></canvas>
-<canvas id="graph-3" width="800" height="400"></canvas>
-<canvas id="graph-active" width="800" height="400"></canvas>
+<canvas id="graph-new-combined" width="800" height="600"></canvas>
+<canvas id="graph-3" width="800" height="600"></canvas>
+<canvas id="graph-active" width="800" height="600"></canvas>
 
 <br />
 <div>
@@ -36,6 +36,12 @@ const optsX_ticks = {
   maxTicksLimit: 20,
   fontSize: 10,
 }
+
+const optsEl_point = {
+  radius: 0,
+  hitRadius: 10, 
+  hoverRadius: 5,
+} 
 
 async function main() {
   /*
@@ -98,10 +104,12 @@ async function main() {
           label: "New cases",
           data: daywise.map(c => c.dailyconfirmed),
           type: 'line',
+          pointRadius: 0,
         },
         {
           label: "Change ine new cases",
           data: daywise.map(c => c.deltaconfirmed),
+          backgroundColor: "#002244",
         },
       ]
     },
@@ -116,11 +124,14 @@ async function main() {
           }
         ],
         xAxes: [ { ticks: optsX_ticks } ],
+      },
+      elements: {
+        point: optsEl_point,
       }
     },
   })
   new Chart(document.getElementById('graph-3'), {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: daywise.map(c => c.date.substr(0, 6)),
       datasets: [
