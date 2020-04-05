@@ -7,21 +7,64 @@
 body {
   font-family: Arial;
 }
+.tab {
+  cursor: pointer;
+  border: 1px solid #DDD;
+  padding: 3px;
+}
+.tab-selected {
+  background: #EEE;
+}
+.tab-panel {
+  display: none;
+}
+.tab-panel-selected {
+  display: block;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <script src="//d3js.org/d3.v3.min.js"></script>
 </head>
 <body>
 
-<canvas id="graph-new-combined" width="800" height="600"></canvas>
-<canvas id="graph-3" width="800" height="600"></canvas>
-<canvas id="graph-active" width="800" height="600"></canvas>
+<div class="tab-container">
+  <div class="tabs">
+    <span class="tab tab-selected">New Case Rate</span>
+    <span class="tab">Death Rate</span>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel tab-panel-selected">
+      <canvas id="graph-change-rate" width="800" height="800"></canvas>
+    </div>
+    <div class="tab-panel">
+      <canvas id="graph-death-rate" width="800" height="500"></canvas>      
+    </div>
+  </div>
+</div>
+
+<div class="tab-container">
+  <div class="tabs">
+    <span class="tab tab-selected">Totals (Line)</span>
+    <span class="tab">Totals (Bar)</span>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel tab-panel-selected">
+      <canvas id="graph-totals-line" width="800" height="500"></canvas>
+    </div>
+    <div class="tab-panel">
+      <canvas id="graph-totals-bar" width="800" height="500"></canvas>
+    </div>
+  </div>
+</div>
+
+
 
 <br />
 <div>
 Powered by <a href="https://www.covid19india.org">https://www.covid19india.org</a><br />
 More graphs at <a href="https://aatishb.com/covidtrends">https://aatishb.com/covidtrends</a>
 </div>
+
 
 <script>
 const optsY_position = 'right'
@@ -57,7 +100,7 @@ async function main() {
   let data = await res.json()
   console.log(data)
 
-  let daywise = data.cases_time_series
+  let daywise = data.cases_time_series.slice(30)
 
   // let cases = data.cases_time_series
   // let yesterdays = cases[cases.length - 1]
@@ -95,104 +138,90 @@ async function main() {
   }
   console.log(daywise)
 
-  new Chart(document.getElementById('graph-new-combined'), {
-    type: 'bar',
-    data: {
-      labels: daywise.map(c => c.date.substr(0, 6)),
-      datasets: [
-        {
-          label: "New cases",
-          data: daywise.map(c => c.dailyconfirmed),
-          type: 'line',
-          pointRadius: 0,
-        },
-        {
-          label: "Change ine new cases",
-          data: daywise.map(c => c.deltaconfirmed),
-          backgroundColor: "#002244",
-        },
-      ]
-    },
-    options: {
-      title: { display: true, text: 'New and Change in New' },
-      scales: {
-        yAxes: [
+  drawChange('graph-change-rate', 'confirmed')
+  drawChange('graph-death-rate', 'deceased')
+  function drawChange(el, dataType) {
+    new Chart(document.getElementById(el), {
+      type: 'bar',
+      data: {
+        labels: daywise.map(c => c.date.substr(0, 6)),
+        datasets: [
           {
-            position: optsY_position,
-            ticks: optsY_ticks,
-            gridLines: optsY_gridLines,
-          }
-        ],
-        xAxes: [ { ticks: optsX_ticks } ],
-      },
-      elements: {
-        point: optsEl_point,
-      }
-    },
-  })
-  new Chart(document.getElementById('graph-3'), {
-    type: 'bar',
-    data: {
-      labels: daywise.map(c => c.date.substr(0, 6)),
-      datasets: [
-        {
-          label: "Total Recovered",
-          data: daywise.map(c => c.totalrecovered),
-          backgroundColor: 'lightgreen',
-        },
-        {
-          label: "Total Deceased",
-          data: daywise.map(c => c.totaldeceased),
-          backgroundColor: 'red',
-        },
-        {
-          label: "Total Active",
-          data: daywise.map(c => (c.totalactive)),
-          backgroundColor: 'lightblue',
-        },
-      ]
-    },
-    options: {
-      title: { display: true, text: 'Total' },
-      scales: {
-        xAxes: [ { ticks: optsX_ticks } ],
-        yAxes: [
-          {
-            position: optsY_position,
-            ticks: optsY_ticks,
-            gridLines: optsY_gridLines,
-            stacked: true,
+            label: "New cases",
+            data: daywise.map(c => c[`daily${dataType}`]),
+            type: 'line',
+            pointRadius: 0,
           },
-        ],
-      },
-    },
-  })
-
-  new Chart(document.getElementById('graph-active'), {
-    type: 'line',
-    data: {
-      labels: daywise.map(c => c.date.substr(0, 6)),
-      datasets: [
-        {
-          label: "Total Active",
-          data: daywise.map(c => c.totalactive),
-        },
-      ]
-    },
-    options: {
-      title: { display: true, text: 'Total Active' },
-      scales: {
-        yAxes: [
           {
-            position: optsY_position,
-            ticks: optsY_ticks,
-            gridLines: optsY_gridLines,
-          }
-        ],
-        xAxes: [ { ticks: optsX_ticks } ],
-      }
-    },
-  })
+            label: "Change in new cases",
+            data: daywise.map(c => c[`delta${dataType}`]),
+            backgroundColor: "#002244",
+          },
+        ]
+      },
+      options: {
+        title: { display: true, text: `Daily new ${dataType} and change` },
+        scales: {
+          yAxes: [
+            {
+              position: optsY_position,
+              ticks: optsY_ticks,
+              gridLines: optsY_gridLines,
+            }
+          ],
+          xAxes: [ { ticks: optsX_ticks } ],
+        },
+        elements: {
+          point: optsEl_point,
+        },
+      },
+    })
+  }
+
+  drawTotals('graph-totals-line', 'line')
+  drawTotals('graph-totals-bar', 'bar')
+  function drawTotals(el, type) {
+    new Chart(document.getElementById(el), {
+      type,
+      data: {
+        labels: daywise.map(c => c.date.substr(0, 6)),
+        datasets: [
+          {
+            label: "Total Recovered",
+            data: daywise.map(c => c.totalrecovered),
+            backgroundColor: 'lightgreen',
+          },
+          {
+            label: "Total Deceased",
+            data: daywise.map(c => c.totaldeceased),
+            backgroundColor: 'red',
+          },
+          {
+            label: "Total Active",
+            data: daywise.map(c => (c.totalactive)),
+            backgroundColor: 'lightblue',
+          },
+        ]
+      },
+      options: {
+        title: { display: true, text: 'Total' },
+        scales: {
+          xAxes: [ { ticks: optsX_ticks } ],
+          yAxes: [
+            {
+              position: optsY_position,
+              ticks: optsY_ticks,
+              gridLines: optsY_gridLines,
+              stacked: true,
+            },
+          ],
+        },
+        elements: {
+          point: optsEl_point,
+        },
+      },
+    })
+  }
 
   /*
     '#ff073a',
@@ -214,8 +243,32 @@ async function main() {
   */
 }
 
+function tab(el) {
+  console.log(el)
+}
+
 window.onload = function () {
   main()
+  document.querySelectorAll('.tab-container').forEach($tc => {
+    let $tabs = $tc.querySelector('.tabs')
+    let $panels = $tc.querySelector('.tab-panels')
+
+    $tabs.querySelectorAll('.tab').forEach($tab => {
+      $tab.addEventListener('click', function (e) {
+        let i = Array.prototype.indexOf.call(e.target.parentNode.children, e.target)
+        let $panel = $panels.children.item(i)
+        Array.from($panels.children).forEach($p => {
+          $p.classList.remove('tab-panel-selected')
+        })
+        $panel.classList.toggle('tab-panel-selected')
+
+        Array.from($tabs.children).forEach($t => {
+          $t.classList.remove('tab-selected')
+        })
+        $tab.classList.toggle('tab-selected')
+      })
+    })
+  })
 }
 
 </script>
