@@ -316,43 +316,44 @@ async function test() {
   }
 
   const stateMap = {
-    an: { color: '', name: '', skip: true },
+    mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
+    kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+    ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+
+    an: { color: '', name: 'Andaman and Nicobar', skip: true },
     ap: { color: '#31393C', name: 'Andhra Pradesh' },
-    ar: { color: '', name: '', skip: true },
+    ar: { color: '', name: 'Arunachal Pradesh', skip: true },
     as: { color: '', name: 'Assam', skip: true },
     br: { color: '', name: 'Bihar', skip: true },
-    ch: { color: '', name: '', skip: true },
-    ct: { color: '', name: '', skip: true },
-    dd: { color: '', name: '', skip: true },
-    dl: { color: '', name: '' },
-    dn: { color: '', name: '', skip: true },
-    ga: { color: '', name: '', skip: true },
+    ch: { color: '', name: 'Chandigarh', skip: true },
+    ct: { color: '', name: 'Chhattisgarh', skip: true },
+    dd: { color: '', name: 'Daman and Diu', skip: true },
+    dl: { color: '', name: 'Delhi' },
+    dn: { color: '', name: 'Dadra and Nagar Haveli', skip: true },
+    ga: { color: '', name: 'Goa', skip: true },
     gj: { color: '', name: 'Gujarat', skip: true },
     hp: { color: '', name: 'Himachal Pradesh', skip: true },
-    hr: { color: '', name: 'Haryana' },
-    jh: { color: '', name: '', skip: true },
-    jk: { color: '', name: '' },
-    ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
-    kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
-    la: { color: '', name: '', skip: true },
-    ld: { color: '', name: '', skip: true },
-    mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
-    ml: { color: '', name: '', skip: true },
-    mn: { color: '', name: '', skip: true },
+    hr: { color: '', name: 'Haryana', hidden: true },
+    jh: { color: '', name: 'Jharkhand', skip: true },
+    jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
+    la: { color: '', name: 'Ladakh', skip: true },
+    ld: { color: '', name: 'Lakshadweep', skip: true },
+    ml: { color: '', name: 'Meghalaya', skip: true },
+    mn: { color: '', name: 'Manipur', skip: true },
     mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', skip: true },
     mz: { color: '', name: 'Mizoram', skip: true },
     nl: { color: '', name: 'Nagaland', skip: true },
-    or: { color: '', name: 'Orissa', skip: true },
-    pb: { color: '', name: 'Punjab' },
-    py: { color: '', name: '', skip: true },
-    rj: { color: '', name: 'Rajasthan' },
-    sk: { color: '', name: '', skip: true },
-    tg: { color: '', name: '' },
+    or: { color: '', name: 'Odisha', skip: true },
+    pb: { color: '', name: 'Punjab', hidden: true },
+    py: { color: '', name: 'Puducherry', skip: true },
+    rj: { color: '', name: 'Rajasthan', hidden: true },
+    sk: { color: '', name: 'Sikkim', skip: true },
+    tg: { color: '', name: 'Telangana' },
     tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
-    tr: { color: '', name: '', skip: true },
-    tt: { color: '', name: 'Total' },
-    up: { color: '', name: 'Uttar Pradesh' },
-    ut: { color: '', name: '', skip: true },
+    tr: { color: '', name: 'Tripura', skip: true },
+    tt: { color: '', name: 'Total', hidden: true },
+    up: { color: '', name: 'Uttar Pradesh', hidden: true },
+    ut: { color: '', name: 'Uttarakhand', skip: true },
     wb: { color: '', name: 'West Bengal', skip: true },
   }
   res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/states_daily.json')
@@ -397,9 +398,11 @@ async function test() {
     datasets.push({
       label: stateMap[st].name || st,
       borderColor: color,
+      hidden: stateMap[st].hidden,
       backgroundColor: Chart.helpers.color(color).alpha(0.5).rgbString(),
       showLine: true,
       fill: false,
+      pointRadius: 0,
       data,
     })
   }
@@ -421,14 +424,15 @@ async function test() {
             userCallback: function(tick) {
               var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
               if (remain === 1 || remain === 2 || remain === 5) {
+                if (tick >= 1000) return tick/1000 + 'k'
                 return tick.toString()
               }
               return ''
             },
           },
           scaleLabel: {
-            labelString: 'Frequency',
-            display: true,
+            // labelString: 'Frequency',
+            // display: true,
           },
         }
       ],
@@ -439,14 +443,15 @@ async function test() {
             userCallback: function(tick) {
               var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
               if (remain === 1 || remain === 2 || remain === 5) {
+                if (tick >= 1000) return tick/1000 + 'k'
                 return tick.toString()
               }
               return ''
             },
           },
           scaleLabel: {
-            labelString: 'Frequency',
-            display: true,
+            // labelString: 'Frequency',
+            // display: true,
           },
         },
       ],
