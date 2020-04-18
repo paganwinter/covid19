@@ -29,15 +29,26 @@ body {
 
 <div class="tab-container">
   <div class="tabs">
+    <span class="tab tab-selected">Trend</span>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel tab-panel-selected">
+      <canvas id="graph-trend" width="800" height="600"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="tab-container">
+  <div class="tabs">
     <span class="tab tab-selected">New Case Rate</span>
     <span class="tab">Death Rate</span>
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-change-rate" width="800" height="1000"></canvas>
+      <canvas id="graph-change-rate" width="800" height="600"></canvas>
     </div>
     <div class="tab-panel">
-      <canvas id="graph-death-rate" width="800" height="1000"></canvas>      
+      <canvas id="graph-death-rate" width="800" height="600"></canvas>      
     </div>
   </div>
 </div>
@@ -49,14 +60,13 @@ body {
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-totals-line" width="800" height="1000"></canvas>
+      <canvas id="graph-totals-line" width="800" height="600"></canvas>
     </div>
     <div class="tab-panel">
-      <canvas id="graph-totals-bar" width="800" height="1000"></canvas>
+      <canvas id="graph-totals-bar" width="800" height="600"></canvas>
     </div>
   </div>
 </div>
-
 
 
 <br />
@@ -117,7 +127,7 @@ async function main() {
     totalrecovered: todays.recovered,
     totaldeceased: todays.deaths,
   }
-  console.log(todays)
+  // console.log(todays)
   daywise.push(todays)
 
   let prevConfirmed = 0
@@ -249,6 +259,8 @@ function tab(el) {
 
 window.onload = function () {
   main()
+  test()
+
   document.querySelectorAll('.tab-container').forEach($tc => {
     let $tabs = $tc.querySelector('.tabs')
     let $panels = $tc.querySelector('.tab-panels')
@@ -271,6 +283,204 @@ window.onload = function () {
   })
 }
 
+
+async function test() {
+  /*
+  let res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/state_test_data.json')
+  let state_test_data = await res.json()
+  state_test_data = state_test_data.states_tested_data
+  let testsByState = {}
+  for (let i of state_test_data) {
+    let { state, updatedon: date, totaltested: total, negative, positive, unconfirmed } = i
+    total = parseInt(total)
+    positive = parseInt(positive)
+    negative = parseInt(negative)
+    unconfirmed = parseInt(unconfirmed)
+    let dateParts = date.split('/')
+    date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
+    percentPos = (positive/total*100).toFixed(2)
+
+    testsByState[state] = testsByState[state] || {}
+    // testsByState[state][date] = { total, positive, percentPos, negative, unconfirmed }
+    testsByState[state] = { total, positive, percentPos, negative, unconfirmed }
+    // console.log(state, date, testsByState[state])
+  }
+  console.log(testsByState)
+  */
+
+  const randomColor = function() {
+    var r = Math.floor(Math.random() * 255)
+    var g = Math.floor(Math.random() * 255)
+    var b = Math.floor(Math.random() * 255)
+    return `rgb(${r} , ${g}, ${b})`
+  }
+
+  const stateMap = {
+    an: { color: '', name: '', skip: true },
+    ap: { color: '#31393C', name: 'Andhra Pradesh' },
+    ar: { color: '', name: '', skip: true },
+    as: { color: '', name: 'Assam', skip: true },
+    br: { color: '', name: 'Bihar', skip: true },
+    ch: { color: '', name: '', skip: true },
+    ct: { color: '', name: '', skip: true },
+    dd: { color: '', name: '', skip: true },
+    dl: { color: '', name: '' },
+    dn: { color: '', name: '', skip: true },
+    ga: { color: '', name: '', skip: true },
+    gj: { color: '', name: 'Gujarat', skip: true },
+    hp: { color: '', name: 'Himachal Pradesh', skip: true },
+    hr: { color: '', name: 'Haryana' },
+    jh: { color: '', name: '', skip: true },
+    jk: { color: '', name: '' },
+    ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+    kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+    la: { color: '', name: '', skip: true },
+    ld: { color: '', name: '', skip: true },
+    mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
+    ml: { color: '', name: '', skip: true },
+    mn: { color: '', name: '', skip: true },
+    mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', skip: true },
+    mz: { color: '', name: 'Mizoram', skip: true },
+    nl: { color: '', name: 'Nagaland', skip: true },
+    or: { color: '', name: 'Orissa', skip: true },
+    pb: { color: '', name: 'Punjab' },
+    py: { color: '', name: '', skip: true },
+    rj: { color: '', name: 'Rajasthan' },
+    sk: { color: '', name: '', skip: true },
+    tg: { color: '', name: '' },
+    tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
+    tr: { color: '', name: '', skip: true },
+    tt: { color: '', name: 'Total' },
+    up: { color: '', name: 'Uttar Pradesh' },
+    ut: { color: '', name: '', skip: true },
+    wb: { color: '', name: 'West Bengal', skip: true },
+  }
+  res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/states_daily.json')
+  let { states_daily } = await res.json()
+  console.log(states_daily)
+  let datasets = []
+  let test = {}
+  states_daily = states_daily.filter(d => d.status === 'Confirmed')
+  for (let i of states_daily) {
+    // console.log(i)
+    let { date } = i
+    Object.keys(stateMap).forEach(st => {
+      test[st] = test[st] || []
+      test[st].push({
+        date,
+        daily: parseInt(i[st])
+      })
+    })
+  }
+  console.log(test)
+
+
+  for (let st in test) {
+    if (stateMap[st].skip) continue
+
+    let stateData = test[st]
+    let stateName = stateMap[st]
+    let dailyCount = stateData.map(i => i.daily)
+    let data = []
+    let dailyAggr = 0
+    let newCasesInNDays = 0
+    const N = 7
+    const color = stateMap[st].color || randomColor()
+
+    for (let i = 0; i < dailyCount.length; i++) {
+      let cnt = dailyCount[i]
+      dailyAggr += cnt
+      newCasesInNDays = dailyCount.slice(i - N, i).reduce((a, b) => (a + b), 0)
+      data.push({ x: dailyAggr, y: newCasesInNDays })
+      // data[dailyAggr] = newCasesInNDays
+    }
+    datasets.push({
+      label: stateMap[st].name || st,
+      borderColor: color,
+      backgroundColor: Chart.helpers.color(color).alpha(0.5).rgbString(),
+      showLine: true,
+      fill: false,
+      data,
+    })
+  }
+
+  console.log(datasets)
+
+  let trendData = {
+    // labels: Array.from(Array(1000).keys()), // x axis points
+    datasets,
+  }
+  let trendOpts = {
+    responsive: true,
+    scales: {
+      xAxes: [
+        {
+          type: 'logarithmic',
+          position: 'bottom',
+          ticks: {
+            userCallback: function(tick) {
+              var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
+              if (remain === 1 || remain === 2 || remain === 5) {
+                return tick.toString()
+              }
+              return ''
+            },
+          },
+          scaleLabel: {
+            labelString: 'Frequency',
+            display: true,
+          },
+        }
+      ],
+      yAxes: [
+        {
+          type: 'logarithmic',
+          ticks: {
+            userCallback: function(tick) {
+              var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
+              if (remain === 1 || remain === 2 || remain === 5) {
+                return tick.toString()
+              }
+              return ''
+            },
+          },
+          scaleLabel: {
+            labelString: 'Frequency',
+            display: true,
+          },
+        },
+      ],
+    },
+    tooltips: {
+      callbacks: {
+        title: function(tooltipItem, data) {
+          console.log(tooltipItem, data)
+          console.log(tooltipItem[0].datasetIndex, data.datasets[tooltipItem[0].datasetIndex])
+          return data.datasets[tooltipItem[0].datasetIndex].label
+        },
+        // label: function(tooltipItem, data) {
+        //   return data['datasets'][0]['data'][tooltipItem['index']];
+        // },
+        // afterLabel: function(tooltipItem, data) {
+        //   var dataset = data['datasets'][0];
+        //   var percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][0]['total']) * 100)
+        //   return '(' + percent + '%)';
+        // }
+      },
+      backgroundColor: '#FFF',
+      titleFontSize: 16,
+      titleFontColor: '#0066ff',
+      bodyFontColor: '#000',
+      bodyFontSize: 14,
+      displayColors: false
+    }
+  }
+  let trendChart = new Chart(document.getElementById('graph-trend'), {
+    type: 'scatter',
+    data: trendData,
+    options: trendOpts,
+  });
+}
 </script>
 </body>
 </html>
