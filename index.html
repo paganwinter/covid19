@@ -37,7 +37,8 @@ canvas {
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-trend" height="1000px" width="800px"></canvas>
+      New cases in last 7 days vs Total number of cases
+      <canvas id="graph-trend" height="1200px" width="800px"></canvas>
     </div>
   </div>
 </div>
@@ -391,6 +392,8 @@ async function test() {
     let stateData = test[st]
     let stateName = stateMap[st].name
     let dailyCount = stateData.map(i => i.daily)
+    if (dailyCount.reduce((a, b) => (a + b), 0) < 100) continue
+
     let data = []
     let dailyAggr = 0
     let newCasesInNDays = 0
