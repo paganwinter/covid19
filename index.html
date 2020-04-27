@@ -50,25 +50,25 @@ canvas {
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-change-rate" height="1000px" width="800px"></canvas>
+      <canvas id="graph-change-rate" height="500px" width="800px"></canvas>
     </div>
     <div class="tab-panel">
-      <canvas id="graph-death-rate" height="1000px" width="800px"></canvas>
+      <canvas id="graph-death-rate" height="500px" width="800px"></canvas>
     </div>
   </div>
 </div>
 
 <div class="tab-container">
   <div class="tabs">
-    <span class="tab tab-selected">Totals (Line)</span>
-    <span class="tab">Totals (Bar)</span>
+    <span class="tab tab-selected">Totals</span>
+    <span class="tab">Percentage</span>
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-totals-line" height="1000px" width="800px"></canvas>
+      <canvas id="graph-totals-line" height="500px" width="800px"></canvas>
     </div>
     <div class="tab-panel">
-      <canvas id="graph-totals-bar" height="1000px" width="800px"></canvas>
+      <canvas id="graph-totals-bar" height="500px" width="800px"></canvas>
     </div>
   </div>
 </div>
@@ -136,6 +136,7 @@ async function main() {
     totalconfirmed: todays.confirmed,
     totalrecovered: todays.recovered,
     totaldeceased: todays.deaths,
+    today: true,
   }
   // console.log(todays)
   daywise.push(todays)
@@ -150,12 +151,28 @@ async function main() {
     prevConfirmed = day.dailyconfirmed
     prevRecovered = day.dailyrecovered
     prevDeceased = day.dailydeceased
+    if (day.today) {
+      day.deltaconfirmed = 0
+      day.deltarecovered = 0
+      day.deltadeceased = 0
+    }
 
     day.totalactive = day.totalconfirmed - day.totalrecovered - day.totaldeceased
     day.percentactive = day.totalactive / day.totalconfirmed * 100
     day.percentrecovered = day.totalrecovered / day.totalconfirmed * 100
     day.percentdeceased = day.totaldeceased / day.totalconfirmed * 100
   }
+  for (let i = 0; i < daywise.length; i++) {
+    const N = 3
+    let lastNDays = daywise.slice(Math.max(i+1 - N, 0), i+1)
+    let avgNewCases = lastNDays.reduce((acc, item) => {
+      return (parseInt(acc) + parseInt(item.dailyconfirmed))
+    }, 0)
+    // console.log(avgNewCases, avgNewCases / N)
+    avgNewCases = avgNewCases / N
+    daywise[i].avgDailyNew = avgNewCases
+  }
+
   console.log(daywise)
 
   drawChange('graph-change-rate', 'confirmed')
@@ -199,13 +216,18 @@ async function main() {
   }
 
   drawTotals('graph-totals-line', 'line')
-  drawTotals('graph-totals-bar', 'bar')
+  drawTotalsPercentage('graph-totals-bar')
   function drawTotals(el, type) {
     new Chart(document.getElementById(el), {
       type,
       data: {
         labels: daywise.map(c => c.date.substr(0, 6)),
         datasets: [
+          {
+            label: "Total Active",
+            data: daywise.map(c => (c.totalactive)),
+            backgroundColor: 'lightblue',
+          },
           {
             label: "Total Recovered",
             data: daywise.map(c => c.totalrecovered),
@@ -216,10 +238,47 @@ async function main() {
             data: daywise.map(c => c.totaldeceased),
             backgroundColor: 'red',
           },
+        ]
+      },
+      options: {
+        title: { display: true, text: 'Total' },
+        scales: {
+          xAxes: [ { ticks: optsX_ticks } ],
+          yAxes: [
+            {
+              position: optsY_position,
+              ticks: optsY_ticks,
+              gridLines: optsY_gridLines,
+              stacked: true,
+            },
+          ],
+        },
+        elements: {
+          point: optsEl_point,
+        },
+      },
+    })
+  }
+  function drawTotalsPercentage(el) {
+    new Chart(document.getElementById(el), {
+      type:  'bar',
+      data: {
+        labels: daywise.map(c => c.date.substr(0, 6)),
+        datasets: [
           {
-            label: "Total Active",
-            data: daywise.map(c => (c.totalactive)),
+            label: "Percent Active",
+            data: daywise.map(c => (c.percentactive)),
             backgroundColor: 'lightblue',
+          },
+          {
+            label: "Percent Recovered",
+            data: daywise.map(c => c.percentrecovered),
+            backgroundColor: 'lightgreen',
+          },
+          {
+            label: "Percent Deceased",
+            data: daywise.map(c => c.percentdeceased),
+            backgroundColor: 'red',
           },
         ]
       },
@@ -407,7 +466,7 @@ async function test() {
       newCasesInNDays = lastNDays.reduce((a, b) => (a + b), 0)
       if (dailyAggr > 0) data.push({ x: dailyAggr, y: newCasesInNDays })
       // data[dailyAggr] = newCasesInNDays
-      console.log(stateName, i, cnt, lastNDays, dailyAggr, newCasesInNDays)
+      // console.log(stateName, i, cnt, lastNDays, dailyAggr, newCasesInNDays)
     }
     datasets.push({
       label: stateMap[st].name || st,
