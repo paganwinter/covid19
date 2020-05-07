@@ -27,7 +27,7 @@ canvas {
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
-<script src="//d3js.org/d3.v3.min.js"></script>
+<!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
 </head>
 <body>
 
@@ -82,15 +82,25 @@ More graphs at <a href="https://aatishb.com/covidtrends">https://aatishb.com/cov
 
 
 <script>
+/*
+https://api.covid19india.org/data.json
+https://api.covid19india.org/state_district_wise.json
+https://api.covid19india.org/travel_history.json
+https://api.covid19india.org/raw_data.json
+
+https://raw.githubusercontent.com/covid19india/api/master/data.json
+*/
+
 const proxyUrl = 'https://cors-anywhere.herokuapp.com/'
 // const apiBaseUrl = 'https://raw.githubusercontent.com/covid19india/api/master'
 const apiBaseUrl = 'https://api.covid19india.org'
 const targetUrl = `${proxyUrl}${apiBaseUrl}`
 
+
+
 const optsY_position = 'right'
 const optsY_ticks = { fontSize: 10 }
 const optsY_gridLines = { tickMarkLength: 3 }
-
 const optsX_gridLines = { display: false }
 const optsX_ticks = {
   maxRotation: 90,
@@ -99,33 +109,20 @@ const optsX_ticks = {
   maxTicksLimit: 20,
   fontSize: 10,
 }
-
 const optsEl_point = {
   radius: 0,
   hitRadius: 10, 
   hoverRadius: 5,
 } 
 
-async function main() {
-  /*
-  https://api.covid19india.org/data.json
-  https://api.covid19india.org/state_district_wise.json
-  https://api.covid19india.org/travel_history.json
-  https://api.covid19india.org/raw_data.json
 
-  https://raw.githubusercontent.com/covid19india/api/master/data.json
-  */
-
-  let res = await fetch(`${targetUrl}/data.json`)
-  let data = await res.json()
-  console.log(data)
-
-  let daywise = data.cases_time_series.slice(30)
+async function main({ cases_time_series, statewise }) {
+  let daywise = cases_time_series.slice(30)
 
   // let cases = data.cases_time_series
   // let yesterdays = cases[cases.length - 1]
   // let todays = data.key_values[0]
-  let todays = data.statewise.find(i => i.state === 'Total')
+  let todays = statewise.find(i => i.state === 'Total')
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]
   let todaysDate = todays.lastupdatedtime.split('/') // 29/03/2020 18:17:23
   todays = {
@@ -301,189 +298,50 @@ async function main() {
       },
     })
   }
-
-  /*
-    '#ff073a',
-    '#28a745',
-    '#6c757d',
-    '#ff073a',
-    '#28a745',
-    '#6c757d'
-      datasets: [
-        {
-          label: "New cases",
-          data: cases.map(c => c.dailyconfirmed),
-          backgroundColor: "#002244",
-          barPercentage: 0.1,
-          // barThickness: 6,
-          // maxBarThickness: 10,
-        }
-      ]
-  */
 }
 
-function tab(el) {
-  console.log(el)
+// function tab(el) { console.log(el) }
+
+function o2a(obj) {
+  return Object.keys(obj).map(key => obj[key])
 }
 
-window.onload = function () {
-  main()
-  test()
-
-  document.querySelectorAll('.tab-container').forEach($tc => {
-    let $tabs = $tc.querySelector('.tabs')
-    let $panels = $tc.querySelector('.tab-panels')
-
-    $tabs.querySelectorAll('.tab').forEach($tab => {
-      $tab.addEventListener('click', function (e) {
-        let i = Array.prototype.indexOf.call(e.target.parentNode.children, e.target)
-        let $panel = $panels.children.item(i)
-        Array.from($panels.children).forEach($p => {
-          $p.classList.remove('tab-panel-selected')
-        })
-        $panel.classList.toggle('tab-panel-selected')
-
-        Array.from($tabs.children).forEach($t => {
-          $t.classList.remove('tab-selected')
-        })
-        $tab.classList.toggle('tab-selected')
-      })
-    })
-  })
-}
-
-
-async function test() {
-  /*
-  let res = await fetch('https://raw.githubusercontent.com/covid19india/api/master/state_test_data.json')
-  let state_test_data = await res.json()
-  state_test_data = state_test_data.states_tested_data
-  let testsByState = {}
-  for (let i of state_test_data) {
-    let { state, updatedon: date, totaltested: total, negative, positive, unconfirmed } = i
-    total = parseInt(total)
-    positive = parseInt(positive)
-    negative = parseInt(negative)
-    unconfirmed = parseInt(unconfirmed)
-    let dateParts = date.split('/')
-    date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
-    percentPos = (positive/total*100).toFixed(2)
-
-    testsByState[state] = testsByState[state] || {}
-    // testsByState[state][date] = { total, positive, percentPos, negative, unconfirmed }
-    testsByState[state] = { total, positive, percentPos, negative, unconfirmed }
-    // console.log(state, date, testsByState[state])
-  }
-  console.log(testsByState)
-  */
-
-  const randomColor = function() {
-    var r = Math.floor(Math.random() * 255)
-    var g = Math.floor(Math.random() * 255)
-    var b = Math.floor(Math.random() * 255)
-    return `rgb(${r} , ${g}, ${b})`
-  }
-
-  const stateMap = {
-    ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
-    mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
-    kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
-
-    an: { color: '', name: 'Andaman and Nicobar', hidden: true },
-    ap: { color: '#31393C', name: 'Andhra Pradesh' },
-    ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
-    as: { color: '', name: 'Assam', hidden: true },
-    br: { color: '', name: 'Bihar', hidden: false },
-    ch: { color: '', name: 'Chandigarh', hidden: true },
-    ct: { color: '', name: 'Chhattisgarh', hidden: true },
-    dd: { color: '', name: 'Daman and Diu', hidden: true },
-    dl: { color: '', name: 'Delhi' },
-    dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
-    ga: { color: '', name: 'Goa', hidden: true },
-    gj: { color: '', name: 'Gujarat', hidden: true },
-    hp: { color: '', name: 'Himachal Pradesh', hidden: true },
-    hr: { color: '', name: 'Haryana', hidden: true },
-    jh: { color: '', name: 'Jharkhand', hidden: true },
-    jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
-    la: { color: '', name: 'Ladakh', hidden: true },
-    ld: { color: '', name: 'Lakshadweep', hidden: true },
-    ml: { color: '', name: 'Meghalaya', hidden: true },
-    mn: { color: '', name: 'Manipur', hidden: true },
-    mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
-    mz: { color: '', name: 'Mizoram', hidden: true },
-    nl: { color: '', name: 'Nagaland', hidden: true },
-    or: { color: '', name: 'Odisha', hidden: true },
-    pb: { color: '', name: 'Punjab', hidden: true },
-    py: { color: '', name: 'Puducherry', hidden: true },
-    rj: { color: '', name: 'Rajasthan', hidden: true },
-    sk: { color: '', name: 'Sikkim', hidden: true },
-    tg: { color: '', name: 'Telangana' },
-    tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
-    tr: { color: '', name: 'Tripura', hidden: true },
-    up: { color: '', name: 'Uttar Pradesh', hidden: true },
-    ut: { color: '', name: 'Uttarakhand', hidden: true },
-    wb: { color: '', name: 'West Bengal', hidden: true },
-    tt: { color: '', name: 'Total' },
-  }
-  res = await fetch(`${targetUrl}/states_daily.json`)
-  let { states_daily } = await res.json()
-  console.log(states_daily)
+async function growthTrend(states_daily, data) {
   let datasets = []
-  let test = {}
-  states_daily = states_daily.filter(d => d.status === 'Confirmed')
-  for (let i of states_daily) {
-    // console.log(i)
-    let { date } = i
-    Object.keys(stateMap).forEach(st => {
-      test[st] = test[st] || []
-      test[st].push({
-        date,
-        daily: parseInt(i[st])
-      })
-    })
-  }
-  console.log(test)
 
+  for (let st in data) {
+    let state = data[st]
+    // let dailyCount = o2a(state.confirmed.daily)
+    let dailyCount = state.confirmed.dailyArr.map(i => i.count)
 
-  for (let st in test) {
-    if (stateMap[st].skip) continue
-
-    let stateData = test[st]
-    let stateName = stateMap[st].name
-    let dailyCount = stateData.map(i => i.daily)
-    if (dailyCount.reduce((a, b) => (a + b), 0) < 100) continue
-
-    let data = []
+    let plotData = []
     let dailyAggr = 0
     let newCasesInNDays = 0
     const N = 7
-    const color = stateMap[st].color || randomColor()
 
     for (let i = 0; i < dailyCount.length; i++) {
       let cnt = dailyCount[i]
       dailyAggr += cnt
       let lastNDays = dailyCount.slice(Math.max(i+1 - N, 0), i+1)
       newCasesInNDays = lastNDays.reduce((a, b) => (a + b), 0)
-      if (dailyAggr > 0) data.push({ x: dailyAggr, y: newCasesInNDays })
-      // data[dailyAggr] = newCasesInNDays
-      // console.log(stateName, i, cnt, lastNDays, dailyAggr, newCasesInNDays)
+      if (dailyAggr > 0) plotData.push({ x: dailyAggr, y: newCasesInNDays })
     }
+
+    let color = state.color || randomColor()
     datasets.push({
-      label: stateMap[st].name || st,
+      label: state.name,
       borderColor: color,
       hidden: stateMap[st].hidden,
+
       backgroundColor: Chart.helpers.color(color).alpha(0.5).rgbString(),
       showLine: true,
       fill: false,
       pointRadius: 1,
-      data,
+      data: plotData,
     })
   }
 
-  console.log(datasets)
-
   let trendData = {
-    // labels: Array.from(Array(1000).keys()), // x axis points
     datasets,
   }
   let trendOpts = {
@@ -559,6 +417,244 @@ async function test() {
     options: trendOpts,
   });
 }
+
+
+function getDateList(start, end) {
+  let arr = []
+  let dt = new Date(start)
+  end = end || new Date()
+
+  while (dt <= end) {
+    arr.push(dateToStr(new Date(dt)))
+    dt.setDate(dt.getDate() + 1)
+  }
+
+  return arr
+}
+
+const randomColor = function() {
+  var r = Math.floor(Math.random() * 255)
+  var g = Math.floor(Math.random() * 255)
+  var b = Math.floor(Math.random() * 255)
+  return `rgb(${r} , ${g}, ${b})`
+}
+
+async function getData(dataElement) {
+  let data = await fetch(`${targetUrl}/${dataElement}.json`).then(res => res.json())
+  return data
+}
+
+function stFromState(stateName) {
+  for (let st in stateMap) {
+    if (stateName === stateMap[st].name) {
+      return st
+    }
+  }
+  console.log('stFromState: could not find state code (st) for state name', stateName)
+}
+
+function dateToStr(date) {
+  let month = '' + (date.getMonth() + 1)
+  let day = '' + date.getDate()
+  let year = date.getFullYear()
+
+  if (month.length < 2) month = '0' + month
+  if (day.length < 2) day = '0' + day
+
+  return [year, month, day].join('-')
+}
+
+const START_DATE = '2020-01-30'
+const dateList = getDateList(START_DATE)
+
+const stateMap = {
+  ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+  mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
+  kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+
+  an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
+  ap: { color: '#31393C', name: 'Andhra Pradesh' },
+  ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
+  as: { color: '', name: 'Assam', hidden: true },
+  br: { color: '', name: 'Bihar', hidden: false },
+  ch: { color: '', name: 'Chandigarh', hidden: true },
+  ct: { color: '', name: 'Chhattisgarh', hidden: true },
+  dd: { color: '', name: 'Daman and Diu', hidden: true },
+  dl: { color: '', name: 'Delhi' },
+  dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
+  ga: { color: '', name: 'Goa', hidden: true },
+  gj: { color: '', name: 'Gujarat', hidden: true },
+  hp: { color: '', name: 'Himachal Pradesh', hidden: true },
+  hr: { color: '', name: 'Haryana', hidden: true },
+  jh: { color: '', name: 'Jharkhand', hidden: true },
+  jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
+  la: { color: '', name: 'Ladakh', hidden: true },
+  ld: { color: '', name: 'Lakshadweep', hidden: true },
+  ml: { color: '', name: 'Meghalaya', hidden: true },
+  mn: { color: '', name: 'Manipur', hidden: true },
+  mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
+  mz: { color: '', name: 'Mizoram', hidden: true },
+  nl: { color: '', name: 'Nagaland', hidden: true },
+  or: { color: '', name: 'Odisha', hidden: true },
+  pb: { color: '', name: 'Punjab', hidden: true },
+  py: { color: '', name: 'Puducherry', hidden: true },
+  rj: { color: '', name: 'Rajasthan', hidden: true },
+  sk: { color: '', name: 'Sikkim', hidden: true },
+  tg: { color: '', name: 'Telangana' },
+  tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
+  tr: { color: '', name: 'Tripura', hidden: true },
+  up: { color: '', name: 'Uttar Pradesh', hidden: true },
+  ut: { color: '', name: 'Uttarakhand', hidden: true },
+  wb: { color: '', name: 'West Bengal', hidden: true },
+  tt: { color: '', name: 'Total' },
+}
+
+
+
+function processData({ statewise, states_daily, states_tested_data }) {
+  let byState = {}
+
+  Object.keys(stateMap).forEach(st => {
+    byState[st] = {
+      name: stateMap[st].name,
+      color: stateMap[st].color,
+      confirmed: {
+        total: 0,
+        daily: {},
+        dailyArr: [],
+      },
+      recovered: {
+        total: 0,
+        percent: 0,
+        daily: {},
+        dailyArr: [],
+      },
+      deceased: {
+        total: 0,
+        percent: 0,
+        daily: {},
+        dailyArr: [],
+      },
+      active: {
+        total: 0,
+        percent: 0,
+        daily: {},
+        dailyArr: [],
+      },
+      tests: {},
+      testsArr: [],
+    }
+  })
+
+  for (let item of states_daily) {
+    let { date, status } = item
+    date = dateToStr(new Date(date))
+    status = status.toLowerCase()
+    Object.keys(stateMap).forEach(st => {
+      let count = parseInt(item[st])
+
+      // byState[st][status].daily[date] = { date, count }
+      byState[st][status].daily[date] = count
+      byState[st][status].dailyArr.push({ date, count })
+    })
+  }
+
+  for (let item of statewise) {
+    let { statecode, confirmed, recovered, deaths: deceased, active } = item
+    let st = statecode.toLowerCase()
+    confirmed = parseInt(confirmed)
+    recovered = parseInt(recovered)
+    deceased = parseInt(deceased)
+    active = parseInt(active)
+
+    byState[st].confirmed.total = confirmed
+    byState[st].recovered.total = recovered
+    byState[st].deceased.total = deceased
+    byState[st].active.total = active
+
+    byState[st].confirmed.percent = 100
+    byState[st].recovered.percent = parseFloat((recovered / confirmed * 100).toFixed(2))
+    byState[st].deceased.percent = parseFloat((deceased / confirmed * 100).toFixed(2))
+    byState[st].active.percent = parseFloat((active / confirmed * 100).toFixed(2))
+  }
+
+  let testsByState = {}
+  for (let i of states_tested_data) {
+    let { state, updatedon, totaltested: total, negative, positive, unconfirmed } = i
+    total = parseInt(total)
+    positive = parseInt(positive)
+    negative = parseInt(negative)
+    unconfirmed = parseInt(unconfirmed)
+    let st = stFromState(state)
+    let dateParts = updatedon.split('/')
+    date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
+
+    // console.log(st, total, positive, negative, unconfirmed, date)
+    // byState[st].tests.push({ date, total, positive, negative, unconfirmed })
+    byState[st].tests[date] = { date, total, positive, negative, unconfirmed }
+    byState[st].testsArr.push({ date, total, positive, negative, unconfirmed })
+  }
+
+  for (let st in byState) {
+    let state = byState[st]
+    console.log(
+      st,
+      state.confirmed.total,
+      `${state.recovered.total} (${state.recovered.percent})`,
+      `${state.active.total} (${state.active.percent})`,
+      `${state.deceased.total} (${state.deceased.percent})`,
+    )
+  }
+  return byState
+}
+
+
+window.onload = async function () {
+  let data_json = await getData('data')
+  let { cases_time_series, statewise, tested } = data_json
+  let { states_daily } = await getData('states_daily')
+  let { states_tested_data } = await getData('state_test_data')
+
+  // cases_time_series: array of day-wise daily and cumulative country-wide stats
+  // statewise: array of state-wise totals as of today, with delta over earlier day
+  // tested: array of day-wise country-wide test data
+  // states_daily: array of daily state-wise stats
+  // states_tested_data: 
+
+  // console.log(cases_time_series, statewise, tested)
+  // console.log(states_daily)
+  // console.log(states_tested_data)
+
+  let data = processData({ statewise, states_daily, states_tested_data })
+  console.log(data)
+
+  growthTrend(states_daily, data)
+  main({ cases_time_series, statewise })
+
+  // enable tab behaviour
+  document.querySelectorAll('.tab-container').forEach($tc => {
+    let $tabs = $tc.querySelector('.tabs')
+    let $panels = $tc.querySelector('.tab-panels')
+
+    $tabs.querySelectorAll('.tab').forEach($tab => {
+      $tab.addEventListener('click', function (e) {
+        let i = Array.prototype.indexOf.call(e.target.parentNode.children, e.target)
+        let $panel = $panels.children.item(i)
+        Array.from($panels.children).forEach($p => {
+          $p.classList.remove('tab-panel-selected')
+        })
+        $panel.classList.toggle('tab-panel-selected')
+
+        Array.from($tabs.children).forEach($t => {
+          $t.classList.remove('tab-selected')
+        })
+        $tab.classList.toggle('tab-selected')
+      })
+    })
+  })
+}
+
+
 </script>
 </body>
 </html>
