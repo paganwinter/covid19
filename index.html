@@ -311,6 +311,7 @@ async function growthTrend(states_daily, data) {
 
   for (let st in data) {
     let state = data[st]
+    if (state.confirmed.total < 100) continue
     // let dailyCount = o2a(state.confirmed.daily)
     let dailyCount = state.confirmed.dailyArr.map(i => i.count)
 
@@ -598,10 +599,10 @@ function processData({ statewise, states_daily, states_tested_data }) {
   for (let st in byState) {
     let state = byState[st]
     console.log(
-      st,
+      state.name,
       state.confirmed.total,
-      `${state.recovered.total} (${state.recovered.percent})`,
       `${state.active.total} (${state.active.percent})`,
+      `${state.recovered.total} (${state.recovered.percent})`,
       `${state.deceased.total} (${state.deceased.percent})`,
     )
   }
