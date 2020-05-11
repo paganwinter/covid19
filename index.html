@@ -681,8 +681,16 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
     }
 
     for (let districtName in state) {
+      districtName
       let districtArr = state[districtName]
-      byState[st].districtWise[districtName] = {
+
+      if (['Bengaluru', 'Bengaluru Urban'].includes(districtName)) {
+        // distName = 'Bengaluru Urban'
+        // console.log(districtName, distName)
+        districtName = 'Bengaluru'
+      }
+
+      byState[st].districtWise[districtName] = byState[st].districtWise[districtName] || {
         confirmed: {
           daily: {},
           aggr: {},
@@ -754,11 +762,13 @@ window.onload = async function () {
 
   let data = processData({ statewise, states_daily, states_tested_data, districtsDaily })
   console.log(data)
-  console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
+  console.log(data.ka.districtWise['Bengaluru'].confirmed.aggr)
+  // console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
+  console.log(data.ka.districtWise['Bengaluru Rural'].confirmed.aggr)
 
   growthTrend(data)
   main({ cases_time_series, statewise })
-  districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru Urban', 'confirmed')
+  districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru', 'confirmed')
   districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
 
   // enable tab behaviour
