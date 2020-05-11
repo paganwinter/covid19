@@ -33,18 +33,6 @@ canvas {
 
 <div class="tab-container">
   <div class="tabs">
-    <span class="tab tab-selected">Trend</span>
-  </div>
-  <div class="tab-panels">
-    <div class="tab-panel tab-panel-selected">
-      New cases in last 7 days vs Total number of cases
-      <canvas id="graph-trend" height="1200px" width="800px"></canvas>
-    </div>
-  </div>
-</div>
-
-<div class="tab-container">
-  <div class="tabs">
     <span class="tab tab-selected">New Case Rate</span>
     <span class="tab">Death Rate</span>
   </div>
@@ -57,6 +45,35 @@ canvas {
     </div>
   </div>
 </div>
+
+<div class="tab-container">
+  <div class="tabs">
+    <span class="tab tab-selected">Bangalore</span>
+    <span class="tab">Bombay</span>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel tab-panel-selected">
+      <canvas id="graph-district-bangalore" height="800px" width="800px"></canvas>
+    </div>
+    <div class="tab-panel">
+      <canvas id="graph-district-bombay" height="800px" width="800px"></canvas>
+    </div>
+  </div>
+</div>
+
+
+<div class="tab-container">
+  <div class="tabs">
+    <span class="tab tab-selected">Trend</span>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel tab-panel-selected">
+      New cases in last 7 days vs Total number of cases
+      <canvas id="graph-trend" height="1200px" width="800px"></canvas>
+    </div>
+  </div>
+</div>
+
 
 <div class="tab-container">
   <div class="tabs">
@@ -101,6 +118,7 @@ const targetUrl = `${proxyUrl}${apiBaseUrl}`
 const optsY_position = 'right'
 const optsY_ticks = { fontSize: 10 }
 const optsY_gridLines = { tickMarkLength: 3 }
+
 const optsX_gridLines = { display: false }
 const optsX_ticks = {
   maxRotation: 90,
@@ -184,7 +202,7 @@ async function main({ cases_time_series, statewise }) {
             label: "New cases",
             data: daywise.map(c => c[`daily${dataType}`]),
             type: 'line',
-            pointRadius: 0,
+            pointRadius: 1,
           },
           {
             label: "Change in new cases",
@@ -306,7 +324,7 @@ function o2a(obj) {
   return Object.keys(obj).map(key => obj[key])
 }
 
-async function growthTrend(states_daily, data) {
+async function growthTrend(data) {
   let datasets = []
 
   for (let st in data) {
@@ -419,6 +437,62 @@ async function growthTrend(states_daily, data) {
   });
 }
 
+function districtTimeseries(el, masterData, st, district, type) {
+  let distType = masterData[st].districtWise[district][type]
+  let dates = Object.keys(distType.aggr)
+  let totalConfirmed = Object.keys(distType.aggr).map(dt => distType.aggr[dt])
+  let dailyConfirmed = Object.keys(distType.daily).map(dt => distType.daily[dt])
+
+  new Chart(document.getElementById(el), {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'Total Confirmed',
+          data: totalConfirmed,
+          type: 'line',
+          yAxisID: 'totalConfirmed',
+          pointRadius: 1,
+        },
+        {
+          label: "Daily Confirmed",
+          data: dailyConfirmed,
+          yAxisID: 'dailyConfirmed',
+          backgroundColor: "#002244",
+        },
+      ]
+    },
+    options: {
+      title: { display: true, text: `Total and Daily confirmed` },
+      scales: {
+        yAxes: [
+          {
+            id: 'totalConfirmed',
+            position: 'left',
+            // ticks: optsY_ticks,
+            ticks: { min: 0 },
+            gridLines: optsY_gridLines,
+          },
+          {
+            id: 'dailyConfirmed',
+            position: 'right',
+            ticks: optsY_ticks,
+            // gridLines: optsY_gridLines,
+          }
+        ],
+        xAxes: [
+          {
+            ticks: optsX_ticks
+          }
+        ],
+      },
+      elements: {
+        point: optsEl_point,
+      },
+    },
+  })
+}
 
 function getDateList(start, end) {
   let arr = []
@@ -512,7 +586,7 @@ const stateMap = {
 
 
 
-function processData({ statewise, states_daily, states_tested_data }) {
+function processData({ statewise, states_daily, states_tested_data, districtsDaily }) {
   let byState = {}
 
   Object.keys(stateMap).forEach(st => {
@@ -544,6 +618,7 @@ function processData({ statewise, states_daily, states_tested_data }) {
       },
       tests: {},
       testsArr: [],
+      districtWise: {},
     }
   })
 
@@ -596,6 +671,34 @@ function processData({ statewise, states_daily, states_tested_data }) {
     byState[st].testsArr.push({ date, total, positive, negative, unconfirmed })
   }
 
+  for (let stateName in districtsDaily) {
+    let state = districtsDaily[stateName]
+    let st = stFromState(stateName)
+
+    if (!byState[st]) {
+      console.log('cannot find state', stateName, ' (present in districtsDaily)')
+      continue
+    }
+
+    for (let districtName in state) {
+      let districtArr = state[districtName]
+      byState[st].districtWise[districtName] = {
+        confirmed: {
+          daily: {},
+          aggr: {},
+        },
+      }
+
+      for (let i = 0; i < districtArr.length; i++) {
+        dayData = districtArr[i]
+        let { date, confirmed, active, recovered, deceased } = dayData
+        date = dateToStr(new Date(date))
+        byState[st].districtWise[districtName].confirmed.aggr[date] = districtArr[i].confirmed
+        if (i > 0) byState[st].districtWise[districtName].confirmed.daily[date] = districtArr[i].confirmed - districtArr[i-1].confirmed
+      }
+    }
+  }
+
   for (let st in byState) {
     let state = byState[st]
     console.log(
@@ -611,10 +714,33 @@ function processData({ statewise, states_daily, states_tested_data }) {
 
 
 window.onload = async function () {
-  let data_json = await getData('data')
-  let { cases_time_series, statewise, tested } = data_json
-  let { states_daily } = await getData('states_daily')
-  let { states_tested_data } = await getData('state_test_data')
+  // TODO
+  // Statewise table of:
+  // confirmed / tested * 100
+  // % active, recovered, deceased
+  // change in confirmed/tested
+
+  let promiseHolder
+  try {
+    promiseHolder = await Promise.all([
+      getData('data'),
+      getData('states_daily'),
+      getData('state_test_data'),
+      getData('districts_daily'),
+    ])
+  } catch (err) {
+    alert('Error getting data:' + err.message)
+  }
+
+  let [
+    { cases_time_series, statewise, tested },
+    { states_daily },
+    { states_tested_data },
+    { districtsDaily },
+  ] = promiseHolder
+  console.log(districtsDaily)
+  let bangalore = districtsDaily.Karnataka['Bengaluru Urban']
+  console.log(bangalore)
 
   // cases_time_series: array of day-wise daily and cumulative country-wide stats
   // statewise: array of state-wise totals as of today, with delta over earlier day
@@ -626,11 +752,14 @@ window.onload = async function () {
   // console.log(states_daily)
   // console.log(states_tested_data)
 
-  let data = processData({ statewise, states_daily, states_tested_data })
+  let data = processData({ statewise, states_daily, states_tested_data, districtsDaily })
   console.log(data)
+  console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
 
-  growthTrend(states_daily, data)
+  growthTrend(data)
   main({ cases_time_series, statewise })
+  districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru Urban', 'confirmed')
+  districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
 
   // enable tab behaviour
   document.querySelectorAll('.tab-container').forEach($tc => {
