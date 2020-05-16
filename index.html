@@ -31,20 +31,7 @@ canvas {
 </head>
 <body>
 
-<div class="tab-container">
-  <div class="tabs">
-    <span class="tab tab-selected">New Case Rate</span>
-    <span class="tab">Death Rate</span>
-  </div>
-  <div class="tab-panels">
-    <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-change-rate" height="800px" width="800px"></canvas>
-    </div>
-    <div class="tab-panel">
-      <canvas id="graph-death-rate" height="800px" width="800px"></canvas>
-    </div>
-  </div>
-</div>
+<canvas id="graph-test" height="800px" width="800px"></canvas>
 
 <div class="tab-container">
   <div class="tabs">
@@ -154,7 +141,7 @@ async function main({ cases_time_series, statewise }) {
     today: true,
   }
   // console.log(todays)
-  daywise.push(todays)
+  // daywise.push(todays)
 
   let prevConfirmed = 0
   let prevRecovered = 0
@@ -187,48 +174,7 @@ async function main({ cases_time_series, statewise }) {
     avgNewCases = avgNewCases / N
     daywise[i].avgDailyNew = avgNewCases
   }
-
-  console.log(daywise)
-
-  drawChange('graph-change-rate', 'confirmed')
-  drawChange('graph-death-rate', 'deceased')
-  function drawChange(el, dataType) {
-    new Chart(document.getElementById(el), {
-      type: 'bar',
-      data: {
-        labels: daywise.map(c => c.date.substr(0, 6)),
-        datasets: [
-          {
-            label: "New cases",
-            data: daywise.map(c => c[`daily${dataType}`]),
-            type: 'line',
-            pointRadius: 1,
-          },
-          {
-            label: "Change in new cases",
-            data: daywise.map(c => c[`delta${dataType}`]),
-            backgroundColor: "#002244",
-          },
-        ]
-      },
-      options: {
-        title: { display: true, text: `Daily new ${dataType} and change` },
-        scales: {
-          yAxes: [
-            {
-              position: optsY_position,
-              ticks: optsY_ticks,
-              gridLines: optsY_gridLines,
-            }
-          ],
-          xAxes: [ { ticks: optsX_ticks } ],
-        },
-        elements: {
-          point: optsEl_point,
-        },
-      },
-    })
-  }
+  // console.log(daywise)
 
   drawTotals('graph-totals-line', 'line')
   drawTotalsPercentage('graph-totals-bar')
@@ -433,6 +379,88 @@ async function growthTrend(data) {
   });
 }
 
+function drawDailyAndChange(data, st = 'tt') {
+  new Chart(document.getElementById('graph-test'), {
+    type: 'bar',
+    data: {
+      labels: data[st].confirmed.dailyArr.map(i => i.date),
+      datasets: [
+        {
+          label: "Daily Deceased",
+          data: data[st].deceased.dailyArr.map(i => i.count),
+          type: 'line',
+          pointRadius: 1,
+          backgroundColor: 'rgba(255, 7, 58, 0.3)'
+        },
+        {
+          label: "Change in Daily Deceased",
+          data: data[st].deceased.dailyArr.map((el, i) => (i <= 0) ? 0 : (el.count - data[st].deceased.dailyArr[i-1].count)),
+          type: 'bar',
+          backgroundColor: 'rgba(255, 7, 58, 1)'
+        },
+
+        {
+          label: "Daily Recovered",
+          data: data[st].recovered.dailyArr.map(i => i.count),
+          type: 'line',
+          pointRadius: 1,
+          backgroundColor: 'rgba(40, 167, 69, 0.3)'
+        },
+        {
+          label: "Change in Daily Recovered",
+          data: data[st].recovered.dailyArr.map((el, i) => (i <= 0) ? 0 : (el.count - data[st].recovered.dailyArr[i-1].count)),
+          type: 'bar',
+          backgroundColor: 'rgba(40, 167, 69, 1)'
+        },
+
+        {
+          label: "Daily Confirmed",
+          data: data[st].confirmed.dailyArr.map(el => el.count),
+          type: 'line',
+          pointRadius: 1,
+          backgroundColor: 'rgba(0, 123, 255, 0.3)'
+        },
+        {
+          label: "Change in Daily Confirmed",
+          data: data[st].confirmed.dailyArr.map((el, i) => (i <= 0) ? 0 : (el.count - data[st].confirmed.dailyArr[i-1].count)),
+          type: 'bar',
+          backgroundColor: 'rgba(0, 123, 255, 1)'
+        },
+      ]
+    },
+    options: {
+      title: { display: true, text: `Daily and Change in Daily for ${data[st].name}` },
+      scales: {
+        yAxes: [
+          {
+            position: 'right',
+            ticks: { fontSize: 10 },
+            gridLines: { tickMarkLength: 2 },
+          }
+        ],
+        xAxes: [
+          {
+            ticks: {
+              maxRotation: 90,
+              minRotation: 90,
+              autoSkip: true,
+              maxTicksLimit: data.tt.confirmed.dailyArr.length / 7,
+              fontSize: 10,
+            },
+            // gridLines: { display: false },
+          }
+        ],
+      },
+      elements: {
+        point: {
+          radius: 0,
+          hoverRadius: 5,
+          hitRadius: 10,
+        },
+      },
+    },
+  })
+}
 
 
 function districtTimeseries(el, masterData, st, district, type) {
@@ -492,7 +520,7 @@ function districtTimeseries(el, masterData, st, district, type) {
   })
 }
 
-function getDateList (start, end) {
+function getDateList(start, end) {
   let arr = []
   let dt = new Date(start)
   end = end || new Date()
@@ -505,7 +533,7 @@ function getDateList (start, end) {
   return arr
 }
 
-function randomColor () {
+function randomColor() {
   var r = Math.floor(Math.random() * 255)
   var g = Math.floor(Math.random() * 255)
   var b = Math.floor(Math.random() * 255)
@@ -770,6 +798,9 @@ window.onload = async function () {
   // console.log(data.ka.districtWise['Bengaluru'].confirmed.aggr)
   // console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
   // console.log(data.ka.districtWise['Bengaluru Rural'].confirmed.aggr)
+
+  drawDailyAndChange(data)
+  // drawDailyAndChange(data, 'mh')
 
   let { cases_time_series, statewise, tested } = await getData('data')
 
