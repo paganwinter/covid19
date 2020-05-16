@@ -320,10 +320,6 @@ async function main({ cases_time_series, statewise }) {
 
 // function tab(el) { console.log(el) }
 
-function o2a(obj) {
-  return Object.keys(obj).map(key => obj[key])
-}
-
 async function growthTrend(data) {
   let datasets = []
 
@@ -437,6 +433,8 @@ async function growthTrend(data) {
   });
 }
 
+
+
 function districtTimeseries(el, masterData, st, district, type) {
   let distType = masterData[st].districtWise[district][type]
   let dates = Object.keys(distType.aggr)
@@ -494,7 +492,7 @@ function districtTimeseries(el, masterData, st, district, type) {
   })
 }
 
-function getDateList(start, end) {
+function getDateList (start, end) {
   let arr = []
   let dt = new Date(start)
   end = end || new Date()
@@ -507,7 +505,7 @@ function getDateList(start, end) {
   return arr
 }
 
-const randomColor = function() {
+function randomColor () {
   var r = Math.floor(Math.random() * 255)
   var g = Math.floor(Math.random() * 255)
   var b = Math.floor(Math.random() * 255)
@@ -525,7 +523,7 @@ function stFromState(stateName) {
       return st
     }
   }
-  console.log('stFromState: could not find state code (st) for state name', stateName)
+  // console.log('stFromState: could not find state code (st) for state name', stateName)
 }
 
 function dateToStr(date) {
@@ -586,7 +584,33 @@ const stateMap = {
 
 
 
-function processData({ statewise, states_daily, states_tested_data, districtsDaily }) {
+async function processData() {
+  let promiseHolder
+  try {
+    promiseHolder = await Promise.all([
+      getData('data'),
+      getData('states_daily'),
+      getData('state_test_data'),
+      getData('districts_daily'),
+    ])
+  } catch (err) {
+    alert('Error getting data:' + err.message)
+  }
+
+  let [
+    { cases_time_series, statewise, tested },
+    { states_daily },
+    { states_tested_data },
+    { districtsDaily },
+  ] = promiseHolder
+  console.log(promiseHolder)
+
+  // cases_time_series: array of day-wise daily and cumulative country-wide stats
+  // statewise: array of state-wise totals as of today, with delta over earlier day
+  // tested: array of day-wise country-wide test data
+  // states_daily: array of daily state-wise stats
+  // states_tested_data: 
+
   let byState = {}
 
   Object.keys(stateMap).forEach(st => {
@@ -635,6 +659,7 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
     })
   }
 
+
   for (let item of statewise) {
     let { statecode, confirmed, recovered, deaths: deceased, active } = item
     let st = statecode.toLowerCase()
@@ -654,14 +679,20 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
     byState[st].active.percent = parseFloat((active / confirmed * 100).toFixed(2))
   }
 
+
   let testsByState = {}
   for (let i of states_tested_data) {
-    let { state, updatedon, totaltested: total, negative, positive, unconfirmed } = i
+    let { state: stateName, updatedon, totaltested: total, negative, positive, unconfirmed } = i
+    let st = stFromState(stateName)
+    if (!st) {
+      console.log(`could not translate state name (${stateName}) to code in states_tested_data`)
+      continue
+    }
+
     total = parseInt(total)
     positive = parseInt(positive)
     negative = parseInt(negative)
     unconfirmed = parseInt(unconfirmed)
-    let st = stFromState(state)
     let dateParts = updatedon.split('/')
     date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
 
@@ -671,12 +702,12 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
     byState[st].testsArr.push({ date, total, positive, negative, unconfirmed })
   }
 
+
   for (let stateName in districtsDaily) {
     let state = districtsDaily[stateName]
     let st = stFromState(stateName)
-
-    if (!byState[st]) {
-      console.log('cannot find state', stateName, ' (present in districtsDaily)')
+    if (!st) {
+      console.log(`could not translate state name (${stateName}) to code in districtsDaily`)
       continue
     }
 
@@ -707,6 +738,7 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
     }
   }
 
+
   for (let st in byState) {
     let state = byState[st]
     console.log(
@@ -717,6 +749,8 @@ function processData({ statewise, states_daily, states_tested_data, districtsDai
       `${state.deceased.total} (${state.deceased.percent})`,
     )
   }
+
+
   return byState
 }
 
@@ -728,43 +762,16 @@ window.onload = async function () {
   // % active, recovered, deceased
   // change in confirmed/tested
 
-  let promiseHolder
-  try {
-    promiseHolder = await Promise.all([
-      getData('data'),
-      getData('states_daily'),
-      getData('state_test_data'),
-      getData('districts_daily'),
-    ])
-  } catch (err) {
-    alert('Error getting data:' + err.message)
-  }
+  // let bangalore = districtsDaily.Karnataka['Bengaluru Urban']
+  // console.log(bangalore)
 
-  let [
-    { cases_time_series, statewise, tested },
-    { states_daily },
-    { states_tested_data },
-    { districtsDaily },
-  ] = promiseHolder
-  console.log(districtsDaily)
-  let bangalore = districtsDaily.Karnataka['Bengaluru Urban']
-  console.log(bangalore)
-
-  // cases_time_series: array of day-wise daily and cumulative country-wide stats
-  // statewise: array of state-wise totals as of today, with delta over earlier day
-  // tested: array of day-wise country-wide test data
-  // states_daily: array of daily state-wise stats
-  // states_tested_data: 
-
-  // console.log(cases_time_series, statewise, tested)
-  // console.log(states_daily)
-  // console.log(states_tested_data)
-
-  let data = processData({ statewise, states_daily, states_tested_data, districtsDaily })
+  let data = await processData()
   console.log(data)
-  console.log(data.ka.districtWise['Bengaluru'].confirmed.aggr)
+  // console.log(data.ka.districtWise['Bengaluru'].confirmed.aggr)
   // console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
-  console.log(data.ka.districtWise['Bengaluru Rural'].confirmed.aggr)
+  // console.log(data.ka.districtWise['Bengaluru Rural'].confirmed.aggr)
+
+  let { cases_time_series, statewise, tested } = await getData('data')
 
   growthTrend(data)
   main({ cases_time_series, statewise })
