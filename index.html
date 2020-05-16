@@ -40,10 +40,10 @@ canvas {
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      <canvas id="graph-district-bangalore" height="800px" width="800px"></canvas>
+      <canvas id="graph-district-bangalore" height="600px" width="800px"></canvas>
     </div>
     <div class="tab-panel">
-      <canvas id="graph-district-bombay" height="800px" width="800px"></canvas>
+      <canvas id="graph-district-bombay" height="600px" width="800px"></canvas>
     </div>
   </div>
 </div>
@@ -764,6 +764,11 @@ async function processData() {
       if (['Bengaluru', 'Bengaluru Urban'].includes(districtName)) districtName = 'Bengaluru'
 
       byState[st].districtWise[districtName] = byState[st].districtWise[districtName] || {
+        active: {
+          daily: {},
+          dailyArr: [],
+          aggr: {},
+        },
         confirmed: {
           daily: {},
           dailyArr: [],
@@ -784,18 +789,19 @@ async function processData() {
       for (let i = 0; i < districtArr.length; i++) {
         let dayData = districtArr[i]
         let date = dateToStr(new Date(dayData.date))
+
+        // let activeAgg = +dayData.active
         let confirmedAgg = +dayData.confirmed
-        let activeAgg = +dayData.active
         let recoveredAgg = +dayData.recovered
         let deceasedAgg = +dayData.deceased
-
-        byState[st].districtWise[districtName].confirmed.aggr[date] = confirmedAgg
-        byState[st].districtWise[districtName].recovered.aggr[date] = recoveredAgg
-        byState[st].districtWise[districtName].deceased.aggr[date] = deceasedAgg
 
         let confirmedDaily = (i === 0) ? 0 : confirmedAgg - districtArr[i-1].confirmed
         let recoveredDaily = (i === 0) ? 0 : recoveredAgg - districtArr[i-1].recovered
         let deceasedDaily = (i === 0) ? 0 : deceasedAgg - districtArr[i-1].deceased
+
+        byState[st].districtWise[districtName].confirmed.aggr[date] = confirmedAgg
+        byState[st].districtWise[districtName].recovered.aggr[date] = recoveredAgg
+        byState[st].districtWise[districtName].deceased.aggr[date] = deceasedAgg
 
         byState[st].districtWise[districtName].confirmed.daily[date] = confirmedDaily
         byState[st].districtWise[districtName].confirmed.dailyArr.push({ date, count: confirmedDaily })
