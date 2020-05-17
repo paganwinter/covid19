@@ -31,7 +31,10 @@ canvas {
 </head>
 <body>
 
-<canvas id="graph-test" height="800px" width="800px"></canvas>
+<select id="list-states">
+  <option>Select State</option>
+</select>
+<canvas id="graph-daily-change" height="800px" width="800px"></canvas>
 
 <div class="tab-container">
   <div class="tabs">
@@ -264,8 +267,6 @@ async function main({ cases_time_series, statewise }) {
   }
 }
 
-// function tab(el) { console.log(el) }
-
 async function growthTrend(data) {
   let datasets = []
 
@@ -379,11 +380,70 @@ async function growthTrend(data) {
   });
 }
 
-function drawDailyAndChange(data, st = 'tt') {
-  new Chart(document.getElementById('graph-test'), {
+function districtTimeseries(el, masterData, st, district, type) {
+  let distType = masterData[st].districtWise[district][type]
+  let dates = Object.keys(distType.aggr)
+  let totalConfirmed = Object.keys(distType.aggr).map(dt => distType.aggr[dt])
+  // let dailyConfirmed = Object.keys(distType.daily).map(dt => distType.daily[dt])
+  let dailyConfirmed = distType.dailyArr.map(dc => dc.count)
+
+  new Chart(document.getElementById(el), {
     type: 'bar',
     data: {
-      labels: data[st].confirmed.dailyArr.map(i => i.date),
+      labels: dates,
+      datasets: [
+        {
+          label: 'Total Confirmed',
+          data: totalConfirmed,
+          type: 'line',
+          yAxisID: 'totalConfirmed',
+          pointRadius: 1,
+        },
+        {
+          label: "Daily Confirmed",
+          data: dailyConfirmed,
+          yAxisID: 'dailyConfirmed',
+          backgroundColor: "#002244",
+        },
+      ]
+    },
+    options: {
+      title: { display: true, text: `Total and Daily confirmed` },
+      scales: {
+        yAxes: [
+          {
+            id: 'totalConfirmed',
+            position: 'left',
+            // ticks: optsY_ticks,
+            ticks: { min: 0 },
+            gridLines: optsY_gridLines,
+          },
+          {
+            id: 'dailyConfirmed',
+            position: 'right',
+            ticks: optsY_ticks,
+            // gridLines: optsY_gridLines,
+          }
+        ],
+        xAxes: [
+          {
+            ticks: optsX_ticks
+          }
+        ],
+      },
+      elements: {
+        point: optsEl_point,
+      },
+    },
+  })
+}
+
+
+function drawDailyAndChange(data, st = 'tt') {
+  new Chart(document.getElementById('graph-daily-change'), {
+    type: 'bar',
+    data: {
+      labels: data[st].confirmed.dailyArr.map(i => i.date.substr(5)),
       datasets: [
         {
           label: "Daily Deceased",
@@ -443,8 +503,8 @@ function drawDailyAndChange(data, st = 'tt') {
         xAxes: [
           {
             ticks: {
-              maxRotation: 90,
-              minRotation: 90,
+              // maxRotation: 90,
+              // minRotation: 90,
               autoSkip: true,
               maxTicksLimit: data.tt.confirmed.dailyArr.length / 7,
               fontSize: 10,
@@ -464,64 +524,6 @@ function drawDailyAndChange(data, st = 'tt') {
   })
 }
 
-
-function districtTimeseries(el, masterData, st, district, type) {
-  let distType = masterData[st].districtWise[district][type]
-  let dates = Object.keys(distType.aggr)
-  let totalConfirmed = Object.keys(distType.aggr).map(dt => distType.aggr[dt])
-  // let dailyConfirmed = Object.keys(distType.daily).map(dt => distType.daily[dt])
-  let dailyConfirmed = distType.dailyArr.map(dc => dc.count)
-
-  new Chart(document.getElementById(el), {
-    type: 'bar',
-    data: {
-      labels: dates,
-      datasets: [
-        {
-          label: 'Total Confirmed',
-          data: totalConfirmed,
-          type: 'line',
-          yAxisID: 'totalConfirmed',
-          pointRadius: 1,
-        },
-        {
-          label: "Daily Confirmed",
-          data: dailyConfirmed,
-          yAxisID: 'dailyConfirmed',
-          backgroundColor: "#002244",
-        },
-      ]
-    },
-    options: {
-      title: { display: true, text: `Total and Daily confirmed` },
-      scales: {
-        yAxes: [
-          {
-            id: 'totalConfirmed',
-            position: 'left',
-            // ticks: optsY_ticks,
-            ticks: { min: 0 },
-            gridLines: optsY_gridLines,
-          },
-          {
-            id: 'dailyConfirmed',
-            position: 'right',
-            ticks: optsY_ticks,
-            // gridLines: optsY_gridLines,
-          }
-        ],
-        xAxes: [
-          {
-            ticks: optsX_ticks
-          }
-        ],
-      },
-      elements: {
-        point: optsEl_point,
-      },
-    },
-  })
-}
 
 function getDateList(start, end) {
   let arr = []
@@ -613,7 +615,7 @@ const stateMap = {
   tt: { color: '', name: 'Total' },
 }
 
-
+let masterData
 
 async function processData() {
   let promiseHolder
@@ -832,6 +834,22 @@ async function processData() {
 }
 
 
+function renderStatesList() {
+  let $statesSelect = document.getElementById('list-states')
+  $statesSelect.addEventListener('change', function (e) {
+    let st = e.target.options[e.target.selectedIndex].value
+    console.log(masterData[st])
+    drawDailyAndChange(masterData, st)
+  })
+
+  for (let st in stateMap) {
+    let $opt = document.createElement('option')
+    $opt.value = st
+    $opt.text = stateMap[st].name
+    $statesSelect.appendChild($opt)
+  }
+}
+
 window.onload = async function () {
   // TODO
   // Statewise table of:
@@ -839,18 +857,21 @@ window.onload = async function () {
   // % active, recovered, deceased
   // change in confirmed/tested
 
-  // let bangalore = districtsDaily.Karnataka['Bengaluru Urban']
-  // console.log(bangalore)
-
   let data = await processData()
+  masterData = data
+
   console.log(data.ka)
   console.log(data.tt)
-  // console.log(data.ka.districtWise['Bengaluru'].confirmed.aggr)
-  // console.log(data.ka.districtWise['Bengaluru Urban'].confirmed.aggr)
-  // console.log(data.ka.districtWise['Bengaluru Rural'].confirmed.aggr)
+
+
+  renderStatesList()
 
   drawDailyAndChange(data)
   // drawDailyAndChange(data, 'mh')
+
+
+
+
 
   let { cases_time_series, statewise, tested } = await getData('data')
 
