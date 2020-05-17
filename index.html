@@ -40,7 +40,7 @@ canvas {
   <option>Select Metric</option>
   <option value="confirmed-daily">Daily Confirmed</option>
 </select>
-<canvas id="graph-statewise-metric" height="600px" width="800px"></canvas>
+<canvas id="graph-statewise-metric" height="1000px" width="800px"></canvas>
 
 
 <div class="tab-container">
@@ -452,8 +452,10 @@ function drawDailyAndChange(data, st = 'tt') {
           label: "Daily Deceased",
           data: data[st].deceased.dailyArr.map(i => i.count),
           type: 'line',
+          // fill: false,
           pointRadius: 1,
           backgroundColor: 'rgba(255, 7, 58, 0.3)',
+          // borderColor: 'rgba(255, 7, 58, 1)',
         },
         {
           label: "Change in Daily Deceased",
@@ -467,8 +469,10 @@ function drawDailyAndChange(data, st = 'tt') {
           label: "Daily Recovered",
           data: data[st].recovered.dailyArr.map(i => i.count),
           type: 'line',
+          // fill: false,
           pointRadius: 1,
-          backgroundColor: 'rgba(40, 167, 69, 0.3)'
+          backgroundColor: 'rgba(40, 167, 69, 0.3)',
+          // borderColor: 'rgba(40, 167, 69, 1)',
         },
         {
           label: "Change in Daily Recovered",
@@ -482,8 +486,10 @@ function drawDailyAndChange(data, st = 'tt') {
           label: "Daily Confirmed",
           data: data[st].confirmed.dailyArr.map(el => el.count),
           type: 'line',
+          // fill: false,
           pointRadius: 1,
-          backgroundColor: 'rgba(0, 123, 255, 0.3)'
+          backgroundColor: 'rgba(0, 123, 255, 0.3)',
+          // borderColor: 'rgba(0, 123, 255, 1)',
         },
         {
           label: "Change in Daily Confirmed",
