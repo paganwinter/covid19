@@ -36,6 +36,13 @@ canvas {
 </select>
 <canvas id="graph-daily-change" height="800px" width="800px"></canvas>
 
+<select id="list-metrics">
+  <option>Select Metric</option>
+  <option value="confirmed-daily">Daily Confirmed</option>
+</select>
+<canvas id="graph-statewise-metric" height="600px" width="800px"></canvas>
+
+
 <div class="tab-container">
   <div class="tabs">
     <span class="tab tab-selected">Bangalore</span>
@@ -50,8 +57,6 @@ canvas {
     </div>
   </div>
 </div>
-
-
 <div class="tab-container">
   <div class="tabs">
     <span class="tab tab-selected">Trend</span>
@@ -63,8 +68,6 @@ canvas {
     </div>
   </div>
 </div>
-
-
 <div class="tab-container">
   <div class="tabs">
     <span class="tab tab-selected">Totals</span>
@@ -527,7 +530,7 @@ function drawDailyAndChange(data, st = 'tt') {
 
 function getDateList(start, end) {
   let arr = []
-  let dt = new Date(start)
+  let dt = new Date(start || START_DATE)
   end = end || new Date()
 
   while (dt <= end) {
@@ -850,6 +853,57 @@ function renderStatesList() {
   }
 }
 
+
+function drawMetric(masterData, metric) {
+  let datasets = []
+  for (let st in stateMap) {
+    let data = []
+
+    switch (metric) {
+      case '': {
+        data = masterData[st]
+        break
+      }
+      default: {
+        data = masterData[st].confirmed.dailyArr.map(item => item.count)
+        break
+      }
+    }
+
+    datasets.push({
+      label: stateMap[st].name,
+      data, // : data[st].deceased.dailyArr.map(i => i.count),
+      type: 'line',
+      fill: false,
+      hidden: stateMap[st].hidden,
+      borderColor: stateMap[st].color,
+      pointRadius: 1,
+      backgroundColor: 'rgba(255, 7, 58, 0.3)',
+    })
+  }
+
+  new Chart(document.getElementById('graph-statewise-metric'), {
+    type: 'bar',
+    data: {
+      labels: masterData['tt'].confirmed.dailyArr.map(i => i.date.substr(5)),
+      datasets,
+    },
+    options: {
+    }
+  })
+}
+function renderMetricsList() {
+  let $metricsSelect = document.getElementById('list-metrics')
+  $metricsSelect.addEventListener('change', function (e) {
+    let metric = e.target.options[e.target.selectedIndex].value
+    console.log(metric)
+    drawMetric(masterData, metric)
+    // <canvas id="graph-statewise-metric" height="600px" width="800px"></canvas>
+    // drawDailyAndChange(masterData, st)
+  })
+}
+
+
 window.onload = async function () {
   // TODO
   // Statewise table of:
@@ -865,10 +919,11 @@ window.onload = async function () {
 
 
   renderStatesList()
-
   drawDailyAndChange(data)
   // drawDailyAndChange(data, 'mh')
 
+  renderMetricsList()
+  drawMetric(masterData)
 
 
 
