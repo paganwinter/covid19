@@ -38,9 +38,29 @@ canvas {
 
 <select id="list-metrics">
   <option>Select Metric</option>
-  <option value="confirmed-daily">Daily Confirmed</option>
+  <option value="confirmed">Daily Confirmed</option>
+  <option value="recovered">Daily Recovered</option>
+  <option value="deceased">Daily Deceased</option>
+
+  <option value="confirmedTotal">Total Confirmed</option>
+  <option value="recoveredTotal">Total Recovered</option>
+  <option value="deceasedTotal">Total Deceased</option>
+
+  <option value="activePercent">Percent Active</option>
+  <option value="recoveredPercent">Percent Recovered</option>
+  <option value="deceasedPercent">Percent Deceased</option>
+
+  <option value="confirmedPerMil">Confirmed Per Million</option>
+  <option value="recoveredPerMil">Recovered Per Million</option>
+  <option value="deceasedPerMil">Deceased Per Million</option>
+
+  <option value="tested">Daily Tested</option>
+  <option value="testedTotal">Total Tested</option>
+  <option value="testedPerMil">Tested Per Million</option>
+  <option value="confirmedPerTested">Percent Confirmed Over Tested</option>
 </select>
 <canvas id="graph-statewise-metric" height="1000px" width="800px"></canvas>
+
 
 
 <div class="tab-container">
@@ -125,6 +145,382 @@ const optsEl_point = {
   hitRadius: 10, 
   hoverRadius: 5,
 } 
+
+
+
+
+
+function randomColor() {
+  var r = Math.floor(Math.random() * 255)
+  var g = Math.floor(Math.random() * 255)
+  var b = Math.floor(Math.random() * 255)
+  return `rgb(${r} , ${g}, ${b})`
+}
+
+async function getData(dataElement) {
+  let data = await fetch(`${targetUrl}/${dataElement}.json`).then(res => res.json())
+  return data
+}
+
+function stFromState(stateName) {
+  for (let st in stateMap) {
+    if (stateName === stateMap[st].name) {
+      return st
+    }
+  }
+  // console.log('stFromState: could not find state code (st) for state name', stateName)
+}
+
+function getDateList(start, end) {
+  let dates = []
+  let dt = new Date(start || START_DATE)
+  end = end || new Date()
+
+  while (dt <= end) {
+    dates.push(dateToStr(new Date(dt)))
+    dt.setDate(dt.getDate() + 1)
+  }
+  return dates
+}
+function dateToStr(date) {
+  let month = '' + (date.getMonth() + 1)
+  let day = '' + date.getDate()
+  let year = date.getFullYear()
+
+  if (month.length < 2) month = '0' + month
+  if (day.length < 2) day = '0' + day
+
+  return [year, month, day].join('-')
+}
+function getPrevDate(dateStr) {
+  let dt = new Date(dateStr)
+  dt.setDate(dt.getDate() - 1)
+  return dateToStr(dt)
+}
+
+const START_DATE = '2020-01-01' // '2020-01-30'
+const dateList = getDateList(START_DATE)
+
+const stateMap = {
+  ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+  mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
+  kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+
+  an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
+  ap: { color: '', name: 'Andhra Pradesh' },
+  ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
+  as: { color: '', name: 'Assam', hidden: true },
+  br: { color: '', name: 'Bihar', hidden: true },
+  ch: { color: '', name: 'Chandigarh', hidden: true },
+  ct: { color: '', name: 'Chhattisgarh', hidden: true },
+  dd: { color: '', name: 'Daman and Diu', hidden: true },
+  dl: { color: '', name: 'Delhi', hidden: true },
+  dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
+  // dn: { color: '', name: 'Dadra and Nagar Haveli and Daman and Diu', hidden: true },
+  ga: { color: '', name: 'Goa', hidden: true },
+  gj: { color: '', name: 'Gujarat', hidden: true },
+  hp: { color: '', name: 'Himachal Pradesh', hidden: true },
+  hr: { color: '', name: 'Haryana', hidden: true },
+  jh: { color: '', name: 'Jharkhand', hidden: true },
+  jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
+  la: { color: '', name: 'Ladakh', hidden: true },
+  ld: { color: '', name: 'Lakshadweep', hidden: true },
+  ml: { color: '', name: 'Meghalaya', hidden: true },
+  mn: { color: '', name: 'Manipur', hidden: true },
+  mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
+  mz: { color: '', name: 'Mizoram', hidden: true },
+  nl: { color: '', name: 'Nagaland', hidden: true },
+  or: { color: '', name: 'Odisha', hidden: true },
+  pb: { color: '', name: 'Punjab', hidden: true },
+  py: { color: '', name: 'Puducherry', hidden: true },
+  rj: { color: '', name: 'Rajasthan', hidden: true },
+  sk: { color: '', name: 'Sikkim', hidden: true },
+  tg: { color: '', name: 'Telangana' },
+  tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
+  tr: { color: '', name: 'Tripura', hidden: true },
+  up: { color: '', name: 'Uttar Pradesh', hidden: true },
+  ut: { color: '', name: 'Uttarakhand', hidden: true },
+  wb: { color: '', name: 'West Bengal', hidden: true },
+  tt: { color: 'rgb(0, 0, 0)', name: 'Total', hidden: true },
+}
+
+let masterData
+
+async function processData() {
+  let promiseHolder
+  try {
+    promiseHolder = await Promise.all([
+      getData('data'),
+      getData('states_daily'),
+      getData('state_test_data'),
+      getData('districts_daily'),
+    ])
+  } catch (err) {
+    alert('Error getting data:' + err.message)
+  }
+
+  let [
+    { cases_time_series, statewise, tested },
+    { states_daily },
+    { states_tested_data },
+    { districtsDaily },
+  ] = promiseHolder
+  console.log(promiseHolder)
+
+  // cases_time_series: array of day-wise daily and cumulative country-wide stats
+  // statewise: array of state-wise totals as of today, with delta over earlier day
+  // tested: array of day-wise country-wide test data
+  // states_daily: array of daily state-wise stats
+  // states_tested_data: 
+
+  let byState = {}
+
+  const dateList = getDateList()
+
+  Object.keys(stateMap).forEach(st => {
+    byState[st] = {
+      name: stateMap[st].name,
+      color: stateMap[st].color,
+      byDate: {},
+      byDistrict: {},
+
+      confirmed: {
+        dailyArr: [],
+      },
+      districtWise: {},
+    }
+
+    for (let dtStr of dateList) {
+      byState[st].byDate[dtStr] = {
+        confirmed: 0,
+        recovered: 0,
+        deceased: 0,
+        active: 0,
+        tested: 0,
+
+        // confirmedTotal: 0,
+        // recoveredTotal: 0,
+        // deceasedTotal: 0,
+        // activeTotal: 0,
+        testedTotal: 0,
+
+        // // confirmedPercent: 0,
+        // recoveredPercent: 0,
+        // deceasedPercent: 0,
+        // activePercent: 0,
+
+        // confirmedPerMil: 0,
+        // recoveredPerMil: 0,
+        // deceasedPerMil: 0,
+        // activePerMil: 0,
+        // testsPerMil: 0,
+
+        // confirmedPerTested: 0,
+
+        // growthRte: 0,
+        // doublingRate: 0,
+        // r0: 0,
+      }
+    }
+  })
+
+  // GROWTH RATE %
+  // RECOVERY PER DEATH
+  // REPRODUCTION No
+  // DOUBLING TIME
+  // AVG. DAYS OF HOSPITALIZATION
+  // % OF TOTAL CASES STATES SHARE
+  // % OF ACTIVE CASES STATES SHARE
+  // % OF DEATH CASES STATES SHARE
+  // % OF TESTS STATES SHARE
+
+
+
+  // state wise & india daily counts
+  for (let item of states_daily) {
+    let date = dateToStr(new Date(item.date))
+    let status = item.status.toLowerCase()
+    Object.keys(stateMap).forEach(st => {
+      byState[st].byDate[date][status] = parseInt(item[st]) || 0
+    })
+  }
+  // add current day's from `statewise`
+  Object.keys(stateMap).forEach(st => {
+    let todays = statewise.find(i => i.statecode === st.toUpperCase())
+    if (!todays) return console.error(`could not find data for state code '${st}' in statewise`)
+    let todayDate = dateToStr(new Date())
+    byState[st].byDate[todayDate]['confirmed'] = parseInt(todays.deltaconfirmed) || 0
+    byState[st].byDate[todayDate]['recovered'] = parseInt(todays.deltarecovered) || 0
+    byState[st].byDate[todayDate]['deceased'] = parseInt(todays.deltadeaths) || 0
+
+    // byState[st].byDate[todayDate]['confirmedTotal'] = parseInt(todays.confirmed) || 0
+    // byState[st].byDate[todayDate]['recoveredTotal'] = parseInt(todays.recovered) || 0
+    // byState[st].byDate[todayDate]['deceasedTotal'] = parseInt(todays.deaths) || 0
+    // byState[st].byDate[todayDate]['activeTotal'] = parseInt(todays.confirmed) - parseInt(todays.recovered) - parseInt(todays.deaths)
+  })
+
+
+
+  // state wise daily tests
+  let testsByState = {}
+  for (let i of states_tested_data) {
+    let { state: stateName, updatedon, totaltested: total, negative, positive, unconfirmed } = i
+    let st = stFromState(stateName)
+    if (!st) {
+      console.log(`could not translate state name (${stateName}) to code in states_tested_data`)
+      continue
+    }
+    let dateParts = updatedon.split('/')
+    date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
+
+    byState[st].byDate[date] = byState[st].byDate[date] || {}
+    byState[st].byDate[date]['testedTotal'] = parseInt(i.totaltested)
+
+    if (i.populationncp2019projection) stateMap[st].population = parseInt(i.populationncp2019projection)
+  }
+  console.log(stateMap)
+
+
+
+  // calculate stuff
+  for (let st in byState) {
+    for (let dt in byState[st].byDate) {
+      let prevDate = getPrevDate(dt)
+      if (!byState[st].byDate[prevDate]) continue
+
+      byState[st].byDate[dt]['active'] = byState[st].byDate[dt]['confirmed'] - byState[st].byDate[dt]['recovered'] - byState[st].byDate[dt]['deceased']
+
+      byState[st].byDate[dt]['tested'] = (byState[st].byDate[dt]['testedTotal']) ? byState[st].byDate[dt]['testedTotal'] - byState[st].byDate[prevDate]['testedTotal'] : 0
+
+      byState[st].byDate[dt]['confirmedTotal'] = (byState[st].byDate[prevDate]['confirmedTotal'] || 0) + byState[st].byDate[dt]['confirmed']
+      byState[st].byDate[dt]['recoveredTotal'] = (byState[st].byDate[prevDate]['recoveredTotal'] || 0) + byState[st].byDate[dt]['recovered']
+      byState[st].byDate[dt]['deceasedTotal'] = (byState[st].byDate[prevDate]['deceasedTotal'] || 0) + byState[st].byDate[dt]['deceased']
+      byState[st].byDate[dt]['activeTotal'] = (byState[st].byDate[prevDate]['activeTotal'] || 0) + byState[st].byDate[dt]['active']
+
+      // byState[st].byDate[dt]['confirmedPercent'] = 100
+      byState[st].byDate[dt]['recoveredPercent'] = byState[st].byDate[dt]['recoveredTotal'] / byState[st].byDate[dt]['confirmedTotal'] * 100
+      byState[st].byDate[dt]['deceasedPercent'] = byState[st].byDate[dt]['deceasedTotal'] / byState[st].byDate[dt]['confirmedTotal'] * 100
+      byState[st].byDate[dt]['activePercent'] = byState[st].byDate[dt]['activeTotal'] / byState[st].byDate[dt]['confirmedTotal'] * 100
+
+      byState[st].byDate[dt]['confirmedPerMil'] = byState[st].byDate[dt]['confirmedTotal'] / (stateMap[st].population / 1000000)
+      byState[st].byDate[dt]['recoveredPerMil'] = byState[st].byDate[dt]['recoveredTotal'] / (stateMap[st].population / 1000000)
+      byState[st].byDate[dt]['deceasedPerMil'] = byState[st].byDate[dt]['deceasedTotal'] / (stateMap[st].population / 1000000)
+      byState[st].byDate[dt]['activePerMil'] = byState[st].byDate[dt]['activeTotal'] / (stateMap[st].population / 1000000)
+
+      byState[st].byDate[dt]['testedPerMil'] = byState[st].byDate[dt]['testedTotal'] / (stateMap[st].population / 1000000)
+      byState[st].byDate[dt]['confirmedPerTested'] = byState[st].byDate[dt]['confirmedTotal'] / byState[st].byDate[dt]['testedTotal'] * 100
+    }
+  }
+
+
+
+  // // state wise & india totals
+  // for (let item of statewise) {
+  //   let { statecode, confirmed, recovered, deaths: deceased, active } = item
+  //   let st = statecode.toLowerCase()
+  //   confirmed = parseInt(confirmed)
+  //   recovered = parseInt(recovered)
+  //   deceased = parseInt(deceased)
+  //   active = parseInt(active)
+
+  //   byState[st].confirmed.total = confirmed
+  //   byState[st].recovered.total = recovered
+  //   byState[st].deceased.total = deceased
+  //   byState[st].active.total = active
+
+  //   byState[st].confirmed.percent = 100
+  //   byState[st].recovered.percent = parseFloat((recovered / confirmed * 100).toFixed(2))
+  //   byState[st].deceased.percent = parseFloat((deceased / confirmed * 100).toFixed(2))
+  //   byState[st].active.percent = parseFloat((active / confirmed * 100).toFixed(2))
+  // }
+
+
+
+
+
+
+  // district wise daily counts
+  for (let stateName in districtsDaily) {
+    let state = districtsDaily[stateName]
+    let st = stFromState(stateName)
+    if (!st) {
+      console.log(`could not translate state name (${stateName}) to code in districtsDaily`)
+      continue
+    }
+
+    for (let districtName in state) {
+      districtName
+      let districtArr = state[districtName]
+      if (['Bengaluru', 'Bengaluru Urban'].includes(districtName)) districtName = 'Bengaluru'
+
+      byState[st].districtWise[districtName] = byState[st].districtWise[districtName] || {
+        active: {
+          daily: {},
+          dailyArr: [],
+          aggr: {},
+        },
+        confirmed: {
+          daily: {},
+          dailyArr: [],
+          aggr: {},
+        },
+        recovered: {
+          daily: {},
+          dailyArr: [],
+          aggr: {},
+        },
+        deceased: {
+          daily: {},
+          dailyArr: [],
+          aggr: {},
+        },
+      }
+
+      for (let i = 0; i < districtArr.length; i++) {
+        let dayData = districtArr[i]
+        let date = dateToStr(new Date(dayData.date))
+
+        // let activeAgg = +dayData.active
+        let confirmedAgg = +dayData.confirmed
+        let recoveredAgg = +dayData.recovered
+        let deceasedAgg = +dayData.deceased
+
+        let confirmedDaily = (i === 0) ? 0 : confirmedAgg - districtArr[i-1].confirmed
+        let recoveredDaily = (i === 0) ? 0 : recoveredAgg - districtArr[i-1].recovered
+        let deceasedDaily = (i === 0) ? 0 : deceasedAgg - districtArr[i-1].deceased
+
+        byState[st].districtWise[districtName].confirmed.aggr[date] = confirmedAgg
+        byState[st].districtWise[districtName].recovered.aggr[date] = recoveredAgg
+        byState[st].districtWise[districtName].deceased.aggr[date] = deceasedAgg
+
+        byState[st].districtWise[districtName].confirmed.daily[date] = confirmedDaily
+        byState[st].districtWise[districtName].confirmed.dailyArr.push({ date, count: confirmedDaily })
+
+        byState[st].districtWise[districtName].recovered.daily[date] = recoveredDaily
+        byState[st].districtWise[districtName].recovered.dailyArr.push({ date, count: recoveredDaily })
+
+        byState[st].districtWise[districtName].deceased.daily[date] = deceasedDaily
+        byState[st].districtWise[districtName].deceased.dailyArr.push({ date, count: deceasedDaily })
+      }
+    }
+  }
+
+
+  for (let st in byState) {
+    let state = byState[st]
+    // console.log(
+    //   state.name,
+    //   state.confirmed.total,
+    //   `${state.active.total} (${state.active.percent})`,
+    //   `${state.recovered.total} (${state.recovered.percent})`,
+    //   `${state.deceased.total} (${state.deceased.percent})`,
+    // )
+  }
+
+
+  return byState
+}
+
 
 
 async function main({ cases_time_series, statewise }) {
@@ -270,14 +666,17 @@ async function main({ cases_time_series, statewise }) {
   }
 }
 
-async function growthTrend(data) {
+async function growthTrend(masterData) {
+  let dateList = getDateList('2020-03-01')
   let datasets = []
 
-  for (let st in data) {
-    let state = data[st]
-    if (state.confirmed.total < 100) continue
-    // let dailyCount = o2a(state.confirmed.daily)
-    let dailyCount = state.confirmed.dailyArr.map(i => i.count)
+  for (let st in masterData) {
+    let state = masterData[st]
+
+    if (state.confirmed && state.confirmed.total < 100) continue
+
+    // let dailyCount = state.confirmed.dailyArr.map(i => i.count)
+    let dailyCount = dateList.map(dt => state.byDate[dt].confirmed)
 
     let plotData = []
     let dailyAggr = 0
@@ -355,8 +754,8 @@ async function growthTrend(data) {
     tooltips: {
       callbacks: {
         title: function(tooltipItem, data) {
-          console.log(tooltipItem, data)
-          console.log(tooltipItem[0].datasetIndex, data.datasets[tooltipItem[0].datasetIndex])
+          // console.log(tooltipItem, data)
+          // console.log(tooltipItem[0].datasetIndex, data.datasets[tooltipItem[0].datasetIndex])
           return data.datasets[tooltipItem[0].datasetIndex].label
         },
         // label: function(tooltipItem, data) {
@@ -443,14 +842,19 @@ function districtTimeseries(el, masterData, st, district, type) {
 
 
 function drawDailyAndChange(data, st = 'tt') {
+  let dateList = getDateList('2020-04-01')
+  let datasets = []
+  let labels = dateList.map(dt => dt.substr(5))
+
   new Chart(document.getElementById('graph-daily-change'), {
     type: 'bar',
     data: {
-      labels: data[st].confirmed.dailyArr.map(i => i.date.substr(5)),
+      labels,
       datasets: [
         {
           label: "Daily Deceased",
-          data: data[st].deceased.dailyArr.map(i => i.count),
+          data: dateList.map(dt => masterData[st].byDate[dt]['deceased']),
+          // data: data[st].deceased.dailyArr.map(i => i.count),
           type: 'line',
           // fill: false,
           pointRadius: 1,
@@ -459,7 +863,8 @@ function drawDailyAndChange(data, st = 'tt') {
         },
         {
           label: "Change in Daily Deceased",
-          data: data[st].deceased.dailyArr.map((el, i) => (i <= 0 || i === data[st].deceased.dailyArr.length-1) ? 0 : (el.count - data[st].deceased.dailyArr[i-1].count)),
+          data: dateList.map((dt, i) => (0 < i && i < dateList.length-1) ? masterData[st].byDate[dt]['deceased'] - masterData[st].byDate[dateList[i-1]]['deceased'] : 0),
+          // data: data[st].deceased.dailyArr.map((el, i) => (i <= 0 || i === data[st].deceased.dailyArr.length-1) ? 0 : (el.count - data[st].deceased.dailyArr[i-1].count)),
           type: 'bar',
           backgroundColor: 'rgba(255, 7, 58, 1)',
           hidden: true,
@@ -467,7 +872,7 @@ function drawDailyAndChange(data, st = 'tt') {
 
         {
           label: "Daily Recovered",
-          data: data[st].recovered.dailyArr.map(i => i.count),
+          data: dateList.map(dt => masterData[st].byDate[dt]['recovered']),
           type: 'line',
           // fill: false,
           pointRadius: 1,
@@ -476,7 +881,7 @@ function drawDailyAndChange(data, st = 'tt') {
         },
         {
           label: "Change in Daily Recovered",
-          data: data[st].recovered.dailyArr.map((el, i) => (i <= 0 || i === data[st].recovered.dailyArr.length-1) ? 0 : (el.count - data[st].recovered.dailyArr[i-1].count)),
+          data: dateList.map((dt, i) => (0 < i && i < dateList.length-1) ? masterData[st].byDate[dt]['recovered'] - masterData[st].byDate[dateList[i-1]]['recovered'] : 0),
           type: 'bar',
           backgroundColor: 'rgba(40, 167, 69, 1)',
           hidden: true,
@@ -484,7 +889,7 @@ function drawDailyAndChange(data, st = 'tt') {
 
         {
           label: "Daily Confirmed",
-          data: data[st].confirmed.dailyArr.map(el => el.count),
+          data: dateList.map(dt => masterData[st].byDate[dt]['confirmed']),
           type: 'line',
           // fill: false,
           pointRadius: 1,
@@ -493,7 +898,7 @@ function drawDailyAndChange(data, st = 'tt') {
         },
         {
           label: "Change in Daily Confirmed",
-          data: data[st].confirmed.dailyArr.map((el, i) => (i <= 0 || i === data[st].confirmed.dailyArr.length-1) ? 0 : (el.count - data[st].confirmed.dailyArr[i-1].count)),
+          data: dateList.map((dt, i) => (0 < i && i < dateList.length-1) ? masterData[st].byDate[dt]['confirmed'] - masterData[st].byDate[dateList[i-1]]['confirmed'] : 0),
           type: 'bar',
           backgroundColor: 'rgba(0, 123, 255, 1)'
         },
@@ -532,317 +937,6 @@ function drawDailyAndChange(data, st = 'tt') {
     },
   })
 }
-
-
-function getDateList(start, end) {
-  let arr = []
-  let dt = new Date(start || START_DATE)
-  end = end || new Date()
-
-  while (dt <= end) {
-    arr.push(dateToStr(new Date(dt)))
-    dt.setDate(dt.getDate() + 1)
-  }
-
-  return arr
-}
-
-function randomColor() {
-  var r = Math.floor(Math.random() * 255)
-  var g = Math.floor(Math.random() * 255)
-  var b = Math.floor(Math.random() * 255)
-  return `rgb(${r} , ${g}, ${b})`
-}
-
-async function getData(dataElement) {
-  let data = await fetch(`${targetUrl}/${dataElement}.json`).then(res => res.json())
-  return data
-}
-
-function stFromState(stateName) {
-  for (let st in stateMap) {
-    if (stateName === stateMap[st].name) {
-      return st
-    }
-  }
-  // console.log('stFromState: could not find state code (st) for state name', stateName)
-}
-
-function dateToStr(date) {
-  let month = '' + (date.getMonth() + 1)
-  let day = '' + date.getDate()
-  let year = date.getFullYear()
-
-  if (month.length < 2) month = '0' + month
-  if (day.length < 2) day = '0' + day
-
-  return [year, month, day].join('-')
-}
-
-const START_DATE = '2020-01-30'
-const dateList = getDateList(START_DATE)
-
-const stateMap = {
-  ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
-  mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
-  kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
-
-  an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
-  ap: { color: '#31393C', name: 'Andhra Pradesh' },
-  ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
-  as: { color: '', name: 'Assam', hidden: true },
-  br: { color: '', name: 'Bihar', hidden: false },
-  ch: { color: '', name: 'Chandigarh', hidden: true },
-  ct: { color: '', name: 'Chhattisgarh', hidden: true },
-  dd: { color: '', name: 'Daman and Diu', hidden: true },
-  dl: { color: '', name: 'Delhi' },
-  dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
-  ga: { color: '', name: 'Goa', hidden: true },
-  gj: { color: '', name: 'Gujarat', hidden: true },
-  hp: { color: '', name: 'Himachal Pradesh', hidden: true },
-  hr: { color: '', name: 'Haryana', hidden: true },
-  jh: { color: '', name: 'Jharkhand', hidden: true },
-  jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
-  la: { color: '', name: 'Ladakh', hidden: true },
-  ld: { color: '', name: 'Lakshadweep', hidden: true },
-  ml: { color: '', name: 'Meghalaya', hidden: true },
-  mn: { color: '', name: 'Manipur', hidden: true },
-  mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
-  mz: { color: '', name: 'Mizoram', hidden: true },
-  nl: { color: '', name: 'Nagaland', hidden: true },
-  or: { color: '', name: 'Odisha', hidden: true },
-  pb: { color: '', name: 'Punjab', hidden: true },
-  py: { color: '', name: 'Puducherry', hidden: true },
-  rj: { color: '', name: 'Rajasthan', hidden: true },
-  sk: { color: '', name: 'Sikkim', hidden: true },
-  tg: { color: '', name: 'Telangana' },
-  tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
-  tr: { color: '', name: 'Tripura', hidden: true },
-  up: { color: '', name: 'Uttar Pradesh', hidden: true },
-  ut: { color: '', name: 'Uttarakhand', hidden: true },
-  wb: { color: '', name: 'West Bengal', hidden: true },
-  tt: { color: '', name: 'Total' },
-}
-
-let masterData
-
-async function processData() {
-  let promiseHolder
-  try {
-    promiseHolder = await Promise.all([
-      getData('data'),
-      getData('states_daily'),
-      getData('state_test_data'),
-      getData('districts_daily'),
-    ])
-  } catch (err) {
-    alert('Error getting data:' + err.message)
-  }
-
-  let [
-    { cases_time_series, statewise, tested },
-    { states_daily },
-    { states_tested_data },
-    { districtsDaily },
-  ] = promiseHolder
-  console.log(promiseHolder)
-
-  // cases_time_series: array of day-wise daily and cumulative country-wide stats
-  // statewise: array of state-wise totals as of today, with delta over earlier day
-  // tested: array of day-wise country-wide test data
-  // states_daily: array of daily state-wise stats
-  // states_tested_data: 
-
-  let byState = {}
-
-  Object.keys(stateMap).forEach(st => {
-    byState[st] = {
-      name: stateMap[st].name,
-      color: stateMap[st].color,
-      confirmed: {
-        total: 0,
-        daily: {},
-        dailyArr: [],
-      },
-      recovered: {
-        total: 0,
-        percent: 0,
-        daily: {},
-        dailyArr: [],
-      },
-      deceased: {
-        total: 0,
-        percent: 0,
-        daily: {},
-        dailyArr: [],
-      },
-      active: {
-        total: 0,
-        percent: 0,
-        daily: {},
-        dailyArr: [],
-      },
-      tests: {},
-      testsArr: [],
-      districtWise: {},
-    }
-  })
-
-
-
-  // state wise & india daily counts
-  for (let item of states_daily) {
-    let { date, status } = item
-    date = dateToStr(new Date(date))
-    status = status.toLowerCase()
-    Object.keys(stateMap).forEach(st => {
-      let count = parseInt(item[st])
-      byState[st][status].daily[date] = count
-      byState[st][status].dailyArr.push({ date, count })
-    })
-  }
-  let todays = cases_time_series[cases_time_series.length - 1]
-  let todayConfirmed = +todays.dailyconfirmed
-  let todayRecovered = +todays.dailyrecovered
-  let todayDeceased = +todays.dailydeceased
-  byState['tt'].confirmed.daily[dateToStr(new Date())] = todayConfirmed
-  byState['tt'].confirmed.dailyArr.push({ date: dateToStr(new Date()), count: todayConfirmed })
-  byState['tt'].recovered.daily[dateToStr(new Date())] = todayRecovered
-  byState['tt'].recovered.dailyArr.push({ date: dateToStr(new Date()), count: todayRecovered })
-  byState['tt'].deceased.daily[dateToStr(new Date())] = todayDeceased
-  byState['tt'].deceased.dailyArr.push({ date: dateToStr(new Date()), count: todayDeceased })
-
-
-
-  // state wise & india totals
-  for (let item of statewise) {
-    let { statecode, confirmed, recovered, deaths: deceased, active } = item
-    let st = statecode.toLowerCase()
-    confirmed = parseInt(confirmed)
-    recovered = parseInt(recovered)
-    deceased = parseInt(deceased)
-    active = parseInt(active)
-
-    byState[st].confirmed.total = confirmed
-    byState[st].recovered.total = recovered
-    byState[st].deceased.total = deceased
-    byState[st].active.total = active
-
-    byState[st].confirmed.percent = 100
-    byState[st].recovered.percent = parseFloat((recovered / confirmed * 100).toFixed(2))
-    byState[st].deceased.percent = parseFloat((deceased / confirmed * 100).toFixed(2))
-    byState[st].active.percent = parseFloat((active / confirmed * 100).toFixed(2))
-  }
-
-
-
-  let testsByState = {}
-  for (let i of states_tested_data) {
-    let { state: stateName, updatedon, totaltested: total, negative, positive, unconfirmed } = i
-    let st = stFromState(stateName)
-    if (!st) {
-      console.log(`could not translate state name (${stateName}) to code in states_tested_data`)
-      continue
-    }
-
-    total = parseInt(total)
-    positive = parseInt(positive)
-    negative = parseInt(negative)
-    unconfirmed = parseInt(unconfirmed)
-    let dateParts = updatedon.split('/')
-    date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`
-
-    // console.log(st, total, positive, negative, unconfirmed, date)
-    // byState[st].tests.push({ date, total, positive, negative, unconfirmed })
-    byState[st].tests[date] = { date, total, positive, negative, unconfirmed }
-    byState[st].testsArr.push({ date, total, positive, negative, unconfirmed })
-  }
-
-
-
-  // district wise daily counts
-  for (let stateName in districtsDaily) {
-    let state = districtsDaily[stateName]
-    let st = stFromState(stateName)
-    if (!st) {
-      console.log(`could not translate state name (${stateName}) to code in districtsDaily`)
-      continue
-    }
-
-    for (let districtName in state) {
-      districtName
-      let districtArr = state[districtName]
-      if (['Bengaluru', 'Bengaluru Urban'].includes(districtName)) districtName = 'Bengaluru'
-
-      byState[st].districtWise[districtName] = byState[st].districtWise[districtName] || {
-        active: {
-          daily: {},
-          dailyArr: [],
-          aggr: {},
-        },
-        confirmed: {
-          daily: {},
-          dailyArr: [],
-          aggr: {},
-        },
-        recovered: {
-          daily: {},
-          dailyArr: [],
-          aggr: {},
-        },
-        deceased: {
-          daily: {},
-          dailyArr: [],
-          aggr: {},
-        },
-      }
-
-      for (let i = 0; i < districtArr.length; i++) {
-        let dayData = districtArr[i]
-        let date = dateToStr(new Date(dayData.date))
-
-        // let activeAgg = +dayData.active
-        let confirmedAgg = +dayData.confirmed
-        let recoveredAgg = +dayData.recovered
-        let deceasedAgg = +dayData.deceased
-
-        let confirmedDaily = (i === 0) ? 0 : confirmedAgg - districtArr[i-1].confirmed
-        let recoveredDaily = (i === 0) ? 0 : recoveredAgg - districtArr[i-1].recovered
-        let deceasedDaily = (i === 0) ? 0 : deceasedAgg - districtArr[i-1].deceased
-
-        byState[st].districtWise[districtName].confirmed.aggr[date] = confirmedAgg
-        byState[st].districtWise[districtName].recovered.aggr[date] = recoveredAgg
-        byState[st].districtWise[districtName].deceased.aggr[date] = deceasedAgg
-
-        byState[st].districtWise[districtName].confirmed.daily[date] = confirmedDaily
-        byState[st].districtWise[districtName].confirmed.dailyArr.push({ date, count: confirmedDaily })
-
-        byState[st].districtWise[districtName].recovered.daily[date] = recoveredDaily
-        byState[st].districtWise[districtName].recovered.dailyArr.push({ date, count: recoveredDaily })
-
-        byState[st].districtWise[districtName].deceased.daily[date] = deceasedDaily
-        byState[st].districtWise[districtName].deceased.dailyArr.push({ date, count: deceasedDaily })
-      }
-    }
-  }
-
-
-  for (let st in byState) {
-    let state = byState[st]
-    // console.log(
-    //   state.name,
-    //   state.confirmed.total,
-    //   `${state.active.total} (${state.active.percent})`,
-    //   `${state.recovered.total} (${state.recovered.percent})`,
-    //   `${state.deceased.total} (${state.deceased.percent})`,
-    // )
-  }
-
-
-  return byState
-}
-
-
 function renderStatesList() {
   let $statesSelect = document.getElementById('list-states')
   $statesSelect.addEventListener('change', function (e) {
@@ -850,7 +944,6 @@ function renderStatesList() {
     console.log(masterData[st])
     drawDailyAndChange(masterData, st)
   })
-
   for (let st in stateMap) {
     let $opt = document.createElement('option')
     $opt.value = st
@@ -860,41 +953,62 @@ function renderStatesList() {
 }
 
 
-function drawMetric(masterData, metric) {
+function drawMetric(masterData, metric = 'confirmed') {
+  let dateList = getDateList('2020-04-01')
   let datasets = []
-  for (let st in stateMap) {
-    let data = []
+  let labels = dateList.map(dt => dt.substr(5))
 
-    switch (metric) {
-      case '': {
-        data = masterData[st]
-        break
-      }
-      default: {
-        data = masterData[st].confirmed.dailyArr.map(item => item.count)
-        break
-      }
-    }
+  for (let st in stateMap) {
+    let data = dateList.map(dt => masterData[st].byDate[dt][metric])
 
     datasets.push({
       label: stateMap[st].name,
-      data, // : data[st].deceased.dailyArr.map(i => i.count),
+      data,
       type: 'line',
       fill: false,
       hidden: stateMap[st].hidden,
       borderColor: stateMap[st].color,
       pointRadius: 1,
-      backgroundColor: 'rgba(255, 7, 58, 0.3)',
+      // backgroundColor: 'rgba(255, 7, 58, 0.3)',
     })
   }
 
   new Chart(document.getElementById('graph-statewise-metric'), {
     type: 'bar',
     data: {
-      labels: masterData['tt'].confirmed.dailyArr.map(i => i.date.substr(5)),
+      labels,
       datasets,
     },
     options: {
+      // title: { display: true, text: `Daily and Change in Daily for ${data[st].name}` },
+      scales: {
+        yAxes: [
+          {
+            // position: 'right',
+            ticks: { fontSize: 10 },
+            gridLines: { tickMarkLength: 2 },
+          }
+        ],
+        xAxes: [
+          {
+            ticks: {
+              // maxRotation: 90,
+              // minRotation: 90,
+              autoSkip: true,
+              maxTicksLimit: labels.length / 7,
+              fontSize: 10,
+            },
+            // gridLines: { display: false },
+          }
+        ],
+      },
+      elements: {
+        point: {
+          radius: 0,
+          hoverRadius: 5,
+          hitRadius: 10,
+        },
+      },
     }
   })
 }
@@ -904,8 +1018,6 @@ function renderMetricsList() {
     let metric = e.target.options[e.target.selectedIndex].value
     console.log(metric)
     drawMetric(masterData, metric)
-    // <canvas id="graph-statewise-metric" height="600px" width="800px"></canvas>
-    // drawDailyAndChange(masterData, st)
   })
 }
 
@@ -926,7 +1038,6 @@ window.onload = async function () {
 
   renderStatesList()
   drawDailyAndChange(data)
-  // drawDailyAndChange(data, 'mh')
 
   renderMetricsList()
   drawMetric(masterData)
@@ -935,10 +1046,8 @@ window.onload = async function () {
 
 
   let { cases_time_series, statewise, tested } = await getData('data')
-
   growthTrend(data)
   main({ cases_time_series, statewise })
-
   districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru', 'confirmed')
   districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
 
