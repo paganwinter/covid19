@@ -134,7 +134,7 @@ window.onload = async function () {
     }
 
     for (let st in raw[dt]) {
-      let { total, delta, meta } = raw[dt][st]
+      let { total = {}, delta = {}, meta } = raw[dt][st]
       let stateData = { total, delta, meta }
 
       masterArr.push({...stateData, date: dt, state: st })
@@ -149,7 +149,7 @@ window.onload = async function () {
           stateMap[st.toLowerCase()].districts = stateMap[st.toLowerCase()].districts || {}
           stateMap[st.toLowerCase()].districts[ds] = {}
 
-          let { total, delta, meta } = raw[dt][st].districts[ds]
+          let { total = {}, delta = {}, meta } = raw[dt][st].districts[ds]
           let distData = { total, delta, meta }
 
           masterArr.push({...distData, date: dt, district: ds })
@@ -176,7 +176,7 @@ window.onload = async function () {
 
 
 function renderDistrict(masterData, district, el) {
-  let seriesData = masterData.masterArr.filter(d => d.district === district).map(d => d.total.confirmed)
+  let seriesData = masterData.masterArr.filter(d => d.district === district).map(d => (d.delta.confirmed || 0))
   let dateLabels = masterData.masterArr.filter(d => d.district === district).map(d => d.date)
 
   var options = {
