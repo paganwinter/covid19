@@ -253,7 +253,7 @@ async function processData() {
       getData('data'),
       getData('states_daily'),
       getData('state_test_data'),
-      getData('districts_daily'),
+      // getData('districts_daily'),
     ])
   } catch (err) {
     alert('Error getting data:' + err.message)
@@ -263,7 +263,7 @@ async function processData() {
     { cases_time_series, statewise, tested },
     { states_daily },
     { states_tested_data },
-    { districtsDaily },
+    // { districtsDaily },
   ] = promiseHolder
   console.log(promiseHolder)
 
@@ -439,6 +439,7 @@ async function processData() {
 
 
 
+  /*
   // district wise daily counts
   for (let stateName in districtsDaily) {
     let state = districtsDaily[stateName]
@@ -504,6 +505,7 @@ async function processData() {
       }
     }
   }
+  */
 
 
   for (let st in byState) {

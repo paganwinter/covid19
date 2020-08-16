@@ -1,0 +1,227 @@
+<html>
+<head>
+<title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+
+<style>
+body {
+  font-family: Arial;
+}
+.tab {
+  cursor: pointer;
+  border: 1px solid #DDD;
+  padding: 3px;
+}
+.tab-selected {
+  background: #EEE;
+}
+.tab-panel {
+  display: none;
+}
+.tab-panel-selected {
+  display: block;
+}
+canvas {
+  /* height: 33vh; */
+  height: 1000px;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
+</head>
+<body>
+
+<div id="test"></div>
+
+<script>
+const stateMap = {
+  ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+  mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
+  kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+
+  an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
+  ap: { color: '', name: 'Andhra Pradesh' },
+  ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
+  as: { color: '', name: 'Assam', hidden: true },
+  br: { color: '', name: 'Bihar', hidden: true },
+  ch: { color: '', name: 'Chandigarh', hidden: true },
+  ct: { color: '', name: 'Chhattisgarh', hidden: true },
+  dd: { color: '', name: 'Daman and Diu', hidden: true },
+  dl: { color: '', name: 'Delhi', hidden: true },
+  dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
+  // dn: { color: '', name: 'Dadra and Nagar Haveli and Daman and Diu', hidden: true },
+  ga: { color: '', name: 'Goa', hidden: true },
+  gj: { color: '', name: 'Gujarat', hidden: true },
+  hp: { color: '', name: 'Himachal Pradesh', hidden: true },
+  hr: { color: '', name: 'Haryana', hidden: true },
+  jh: { color: '', name: 'Jharkhand', hidden: true },
+  jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
+  la: { color: '', name: 'Ladakh', hidden: true },
+  ld: { color: '', name: 'Lakshadweep', hidden: true },
+  ml: { color: '', name: 'Meghalaya', hidden: true },
+  mn: { color: '', name: 'Manipur', hidden: true },
+  mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
+  mz: { color: '', name: 'Mizoram', hidden: true },
+  nl: { color: '', name: 'Nagaland', hidden: true },
+  or: { color: '', name: 'Odisha', hidden: true },
+  pb: { color: '', name: 'Punjab', hidden: true },
+  py: { color: '', name: 'Puducherry', hidden: true },
+  rj: { color: '', name: 'Rajasthan', hidden: true },
+  sk: { color: '', name: 'Sikkim', hidden: true },
+  tg: { color: '', name: 'Telangana' },
+  tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
+  tr: { color: '', name: 'Tripura', hidden: true },
+  up: { color: '', name: 'Uttar Pradesh', hidden: true },
+  ut: { color: '', name: 'Uttarakhand', hidden: true },
+  wb: { color: '', name: 'West Bengal', hidden: true },
+  tt: { color: 'rgb(0, 0, 0)', name: 'Total', hidden: true },
+}
+
+
+async function fetchData(dataElement) {
+  const proxyUrl = 'https://cors-anywhere.herokuapp.com/'
+  // const apiBaseUrl = 'https://raw.githubusercontent.com/covid19india/api/master'
+  const apiBaseUrl = 'https://api.covid19india.org'
+  const targetUrl = `${proxyUrl}${apiBaseUrl}`
+
+  let data = await fetch(`${targetUrl}/${dataElement}.json`).then(res => res.json())
+  return data
+}
+
+async function getAllData() {
+  let dataPromises = []
+  try {
+    let [
+//      data,
+//      state_district_wise,
+//      states_daily,
+//      state_test_data,
+//      data_v4,
+      data_all_v4,
+//      timeseries_v4,
+    ] = await Promise.all([
+//      fetchData('data'),
+//      fetchData('state_district_wise'),
+//      fetchData('states_daily'),
+//      fetchData('state_test_data'),
+//      fetchData('v4/data'),
+      fetchData('v4/data-all'),
+//      fetchData('v4/timeseries'),
+    ])
+
+    return {
+      data_all_v4,
+    }
+  } catch (err) {
+    alert('Error getting data:' + err.message)
+  }
+}
+
+window.onload = async function () {
+  let data = await getAllData()
+  console.log(data)
+
+  let raw = data.data_all_v4
+  let byDate = {}
+  let byState = {}
+  let byDistrict = {}
+  let masterArr = []
+
+  for (let dt in raw) {
+    byDate[dt] = byDate[dt] || {
+      states: {},
+      districts: {},
+    }
+
+    for (let st in raw[dt]) {
+      let { total, delta, meta } = raw[dt][st]
+      let stateData = { total, delta, meta }
+
+      masterArr.push({...stateData, date: dt, state: st })
+
+      byDate[dt].states[st] = stateData
+
+      byState[st] = byState[st] || { dates: {} }
+      byState[st].dates[dt] = stateData
+
+      if (raw[dt][st].districts) {
+        for (let ds in raw[dt][st].districts) {
+          stateMap[st.toLowerCase()].districts = stateMap[st.toLowerCase()].districts || {}
+          stateMap[st.toLowerCase()].districts[ds] = {}
+
+          let { total, delta, meta } = raw[dt][st].districts[ds]
+          let distData = { total, delta, meta }
+
+          masterArr.push({...distData, date: dt, district: ds })
+
+          byDate[dt].districts[ds] = distData
+
+          byDistrict[ds] = byDistrict[ds] || { dates: {} }
+          byDistrict[ds].dates[dt] = distData
+        }
+      }
+    }
+  }
+
+  console.log(stateMap)
+  console.log(byDate)
+  console.log(byState)
+  console.log(byDistrict)
+  console.log(byDistrict['Bengaluru Urban'].dates)
+  console.log(masterArr.filter(d => d.district === 'Bengaluru Urban'))
+}
+
+
+function renderChart(masterData) {
+  let 
+  new Chart(document.getElementById('test'), {
+    type,
+    data: {
+      labels: daywise.map(c => c.date.substr(0, 6)),
+      datasets: [
+        {
+          label: "Total Active",
+          data: daywise.map(c => (c.totalactive)),
+          backgroundColor: 'lightblue',
+        },
+        {
+          label: "Total Recovered",
+          data: daywise.map(c => c.totalrecovered),
+          backgroundColor: 'lightgreen',
+        },
+        {
+          label: "Total Deceased",
+          data: daywise.map(c => c.totaldeceased),
+          backgroundColor: 'red',
+        },
+      ]
+    },
+    options: {
+      title: { display: true, text: 'Total' },
+      scales: {
+        xAxes: [ { ticks: optsX_ticks } ],
+        yAxes: [
+          {
+            position: optsY_position,
+            ticks: optsY_ticks,
+            gridLines: optsY_gridLines,
+            stacked: true,
+          },
+        ],
+      },
+      elements: {
+        point: optsEl_point,
+      },
+    },
+  })
+}
+</script>
+
+</body>
+</html>
+
+
+
+
