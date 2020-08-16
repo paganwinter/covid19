@@ -206,20 +206,19 @@ const START_DATE = '2020-01-01' // '2020-01-30'
 const dateList = getDateList(START_DATE)
 
 const stateMap = {
-  // ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
   ka: { color: '#2ECC40', name: 'Karnataka' },
-  mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
-  kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
+  mh: { color: '#0074D9', name: 'Maharashtra' },
+  kl: { color: '#FF4136', name: 'Kerala' },
 
   an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
-  ap: { color: '', name: 'Andhra Pradesh' },
+  ap: { color: '#FF851B', name: 'Andhra Pradesh' },
   ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
   as: { color: '', name: 'Assam', hidden: true },
   br: { color: '', name: 'Bihar', hidden: true },
   ch: { color: '', name: 'Chandigarh', hidden: true },
   ct: { color: '', name: 'Chhattisgarh', hidden: true },
   dd: { color: '', name: 'Daman and Diu', hidden: true },
-  dl: { color: '', name: 'Delhi', hidden: true },
+  dl: { color: '#3D9970', name: 'Delhi' },
   dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
   // dn: { color: '', name: 'Dadra and Nagar Haveli and Daman and Diu', hidden: true },
   ga: { color: '', name: 'Goa', hidden: true },
@@ -240,8 +239,8 @@ const stateMap = {
   py: { color: '', name: 'Puducherry', hidden: true },
   rj: { color: '', name: 'Rajasthan', hidden: true },
   sk: { color: '', name: 'Sikkim', hidden: true },
-  tg: { color: '', name: 'Telangana' },
-  tn: { color: 'rgb(229 , 169, 47)', name: 'Tamil Nadu' },
+  tg: { color: '#FFDC00', name: 'Telangana' },
+  tn: { color: '#F012BE', name: 'Tamil Nadu' },
   tr: { color: '', name: 'Tripura', hidden: true },
   up: { color: '', name: 'Uttar Pradesh', hidden: true },
   ut: { color: '', name: 'Uttarakhand', hidden: true },
@@ -869,6 +868,7 @@ function drawDailyAndChange(data, st = 'tt') {
           pointRadius: 1,
           backgroundColor: 'rgba(255, 7, 58, 0.3)',
           // borderColor: 'rgba(255, 7, 58, 1)',
+          hidden: true,
         },
         {
           label: "Change in Daily Deceased",
@@ -887,6 +887,7 @@ function drawDailyAndChange(data, st = 'tt') {
           pointRadius: 1,
           backgroundColor: 'rgba(40, 167, 69, 0.3)',
           // borderColor: 'rgba(40, 167, 69, 1)',
+          hidden: true,
         },
         {
           label: "Change in Daily Recovered",
