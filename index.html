@@ -63,6 +63,7 @@ canvas {
 
 
 
+<!--
 <div class="tab-container">
   <div class="tabs">
     <span class="tab tab-selected">Bangalore</span>
@@ -77,6 +78,8 @@ canvas {
     </div>
   </div>
 </div>
+-->
+
 <div class="tab-container">
   <div class="tabs">
     <span class="tab tab-selected">Trend</span>
@@ -591,17 +594,17 @@ async function main({ cases_time_series, statewise }) {
           {
             label: "Total Active",
             data: daywise.map(c => (c.totalactive)),
-            backgroundColor: 'lightblue',
+            backgroundColor: '#0074D9',
           },
           {
             label: "Total Recovered",
             data: daywise.map(c => c.totalrecovered),
-            backgroundColor: 'lightgreen',
+            backgroundColor: '#2ECC40',
           },
           {
             label: "Total Deceased",
             data: daywise.map(c => c.totaldeceased),
-            backgroundColor: 'red',
+            backgroundColor: '#FF4136',
           },
         ]
       },
@@ -633,17 +636,17 @@ async function main({ cases_time_series, statewise }) {
           {
             label: "Percent Active",
             data: daywise.map(c => (c.percentactive)),
-            backgroundColor: 'lightblue',
+            backgroundColor: '#0074D9',
           },
           {
             label: "Percent Recovered",
             data: daywise.map(c => c.percentrecovered),
-            backgroundColor: 'lightgreen',
+            backgroundColor: '#2ECC40',
           },
           {
             label: "Percent Deceased",
             data: daywise.map(c => c.percentdeceased),
-            backgroundColor: 'red',
+            backgroundColor: '#FF4136',
           },
         ]
       },
@@ -1050,8 +1053,8 @@ window.onload = async function () {
   let { cases_time_series, statewise, tested } = await getData('data')
   growthTrend(data)
   main({ cases_time_series, statewise })
-  districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru', 'confirmed')
-  districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
+  // districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru', 'confirmed')
+  // districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
 
   // enable tab behaviour
   document.querySelectorAll('.tab-container').forEach($tc => {
