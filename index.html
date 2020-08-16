@@ -205,7 +205,8 @@ const START_DATE = '2020-01-01' // '2020-01-30'
 const dateList = getDateList(START_DATE)
 
 const stateMap = {
-  ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+  // ka: { color: 'rgb(136 , 253, 58)', name: 'Karnataka' },
+  ka: { color: '#2ECC40', name: 'Karnataka' },
   mh: { color: 'rgb(243 , 15, 16)', name: 'Maharashtra' },
   kl: { color: 'rgb(13 , 176, 206)', name: 'Kerala' },
 
@@ -671,7 +672,7 @@ async function main({ cases_time_series, statewise }) {
   }
 }
 
-async function growthTrend(masterData) {
+async function growthTrend(masterData, type) {
   let dateList = getDateList('2020-03-01')
   let datasets = []
 
@@ -718,7 +719,8 @@ async function growthTrend(masterData) {
     scales: {
       xAxes: [
         {
-          type: 'logarithmic',
+          // type: 'logarithmic',
+          type,
           position: 'bottom',
           ticks: {
             userCallback: function(tick) {
@@ -738,7 +740,8 @@ async function growthTrend(masterData) {
       ],
       yAxes: [
         {
-          type: 'logarithmic',
+          // type: 'logarithmic',
+          type,
           ticks: {
             userCallback: function(tick) {
               var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
@@ -1051,7 +1054,7 @@ window.onload = async function () {
 
 
   let { cases_time_series, statewise, tested } = await getData('data')
-  growthTrend(data)
+  growthTrend(data, 'logarithmic')
   main({ cases_time_series, statewise })
   // districtTimeseries('graph-district-bangalore', data, 'ka', 'Bengaluru', 'confirmed')
   // districtTimeseries('graph-district-bombay', data, 'mh', 'Mumbai', 'confirmed')
