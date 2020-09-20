@@ -38,6 +38,7 @@ canvas {
 
 <select id="list-metrics">
   <option>Select Metric</option>
+  <option value="confirmedRollingAvg">Confirmed Rolling Average</option>
   <option value="confirmed">Daily Confirmed</option>
   <option value="recovered">Daily Recovered</option>
   <option value="deceased">Daily Deceased</option>
@@ -245,7 +246,7 @@ const stateMap = {
   up: { color: '', name: 'Uttar Pradesh', hidden: true },
   ut: { color: '', name: 'Uttarakhand', hidden: true },
   wb: { color: '', name: 'West Bengal', hidden: true },
-  tt: { color: 'rgb(0, 0, 0)', name: 'Total', hidden: true },
+  tt: { color: 'rgb(0, 0, 0)', name: 'Total' },
 }
 
 let masterData
@@ -388,6 +389,7 @@ async function processData() {
 
   // calculate stuff
   for (let st in byState) {
+    let datesList = Object.keys(byState[st].byDate)
     for (let dt in byState[st].byDate) {
       let prevDate = getPrevDate(dt)
       if (!byState[st].byDate[prevDate]) continue
@@ -400,6 +402,17 @@ async function processData() {
       byState[st].byDate[dt]['recoveredTotal'] = (byState[st].byDate[prevDate]['recoveredTotal'] || 0) + byState[st].byDate[dt]['recovered']
       byState[st].byDate[dt]['deceasedTotal'] = (byState[st].byDate[prevDate]['deceasedTotal'] || 0) + byState[st].byDate[dt]['deceased']
       byState[st].byDate[dt]['activeTotal'] = (byState[st].byDate[prevDate]['activeTotal'] || 0) + byState[st].byDate[dt]['active']
+
+      // calculat elast 7 days' average
+      const N = 7
+      let avg = 0
+      let curDateIndex = datesList.indexOf(dt)
+      let lastNDays = datesList.slice(Math.max(curDateIndex + 1 - N, 0), curDateIndex + 1)
+      for (let d of lastNDays) {
+        avg += byState[st].byDate[d].confirmed
+      }
+      avg = avg / N
+      byState[st].byDate[dt]['confirmedRollingAvg'] = avg
 
       // byState[st].byDate[dt]['confirmedPercent'] = 100
       byState[st].byDate[dt]['recoveredPercent'] = byState[st].byDate[dt]['recoveredTotal'] / byState[st].byDate[dt]['confirmedTotal'] * 100
