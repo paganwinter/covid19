@@ -83,12 +83,17 @@ canvas {
 
 <div class="tab-container">
   <div class="tabs">
-    <span class="tab tab-selected">Trend</span>
+    <span class="tab tab-selected">Trend (Lin)</span>
+    <span class="tab">Trend (Log)</span>
   </div>
   <div class="tab-panels">
     <div class="tab-panel tab-panel-selected">
-      New cases in last 7 days vs Total number of cases
+      New cases in last 7 days vs Total number of cases (Linear)
       <canvas id="graph-trend" height="1200px" width="800px"></canvas>
+    </div>
+    <div class="tab-panel">
+      New cases in last 7 days vs Total number of cases (Logarithmic)
+      <canvas id="graph-trend-log" height="1200px" width="800px"></canvas>
     </div>
   </div>
 </div>
@@ -732,7 +737,6 @@ async function growthTrend(masterData, type) {
     scales: {
       xAxes: [
         {
-          // type: 'logarithmic',
           type: 'linear',
           position: 'bottom',
           ticks: {
@@ -753,7 +757,6 @@ async function growthTrend(masterData, type) {
       ],
       yAxes: [
         {
-          // type: 'logarithmic',
           type: 'linear',
           ticks: {
             _userCallback: function(tick) {
@@ -796,10 +799,85 @@ async function growthTrend(masterData, type) {
       // displayColors: false,
     }
   }
+
+  let trendOptsLog = {
+    responsive: true,
+    scales: {
+      xAxes: [
+        {
+          type: 'logarithmic',
+          position: 'bottom',
+          ticks: {
+            userCallback: function(tick) {
+              var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
+              if (remain === 1 || remain === 2 || remain === 5) {
+                if (tick >= 1000) return tick/1000 + 'k'
+                return tick.toString()
+              }
+              return ''
+            },
+          },
+          scaleLabel: {
+            // labelString: 'Frequency',
+            // display: true,
+          },
+        }
+      ],
+      yAxes: [
+        {
+          type: 'logarithmic',
+          ticks: {
+            userCallback: function(tick) {
+              var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
+              if (remain === 1 || remain === 2 || remain === 5) {
+                if (tick >= 1000) return tick/1000 + 'k'
+                return tick.toString()
+              }
+              return ''
+            },
+          },
+          scaleLabel: {
+            // labelString: 'Frequency',
+            // display: true,
+          },
+        },
+      ],
+    },
+    tooltips: {
+      callbacks: {
+        title: function(tooltipItem, data) {
+          // console.log(tooltipItem, data)
+          // console.log(tooltipItem[0].datasetIndex, data.datasets[tooltipItem[0].datasetIndex])
+          return data.datasets[tooltipItem[0].datasetIndex].label
+        },
+        // label: function(tooltipItem, data) {
+        //   return data['datasets'][0]['data'][tooltipItem['index']];
+        // },
+        // afterLabel: function(tooltipItem, data) {
+        //   var dataset = data['datasets'][0];
+        //   var percent = Math.round((dataset['data'][tooltipItem['index']] / dataset["_meta"][0]['total']) * 100)
+        //   return '(' + percent + '%)';
+        // }
+      },
+      // backgroundColor: '#FFF',
+      titleFontSize: 16,
+      // titleFontColor: '#0066ff',
+      // bodyFontColor: '#000',
+      bodyFontSize: 14,
+      // displayColors: false,
+    }
+  }
+
   let trendChart = new Chart(document.getElementById('graph-trend'), {
     type: 'scatter',
     data: trendData,
     options: trendOpts,
+  });
+
+  let trendChartLog = new Chart(document.getElementById('graph-trend-log'), {
+    type: 'scatter',
+    data: trendData,
+    options: trendOptsLog,
   });
 }
 
