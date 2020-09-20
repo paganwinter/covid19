@@ -733,10 +733,10 @@ async function growthTrend(masterData, type) {
       xAxes: [
         {
           // type: 'logarithmic',
-          type,
+          type: 'linear',
           position: 'bottom',
           ticks: {
-            userCallback: function(tick) {
+            _userCallback: function(tick) {
               var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
               if (remain === 1 || remain === 2 || remain === 5) {
                 if (tick >= 1000) return tick/1000 + 'k'
@@ -754,9 +754,9 @@ async function growthTrend(masterData, type) {
       yAxes: [
         {
           // type: 'logarithmic',
-          type,
+          type: 'linear',
           ticks: {
-            userCallback: function(tick) {
+            _userCallback: function(tick) {
               var remain = tick / (Math.pow(10, Math.floor(Chart.helpers.log10(tick))))
               if (remain === 1 || remain === 2 || remain === 5) {
                 if (tick >= 1000) return tick/1000 + 'k'
