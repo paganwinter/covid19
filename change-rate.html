@@ -1,0 +1,340 @@
+<html>
+<head>
+<title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
+</head>
+<body>
+
+<select id="states-dropdown">
+  <option>select state</option>
+</select>
+<div id="sample-chart-apex"></div>
+<canvas id="sample-chart-js" style="width: 400px; height: 200px;"></canvas>
+
+<script>
+// https://raw.githubusercontent.com/covid19india/api/master/data.json
+
+const stateMap = {
+  tt: { color: 'rgb(0, 0, 0)', name: 'Total', hidden: true },
+  ka: { color: '#2ECC40', name: 'Karnataka' },
+  mh: { color: '#0074D9', name: 'Maharashtra' },
+  kl: { color: '#FF4136', name: 'Kerala' },
+  tn: { color: '#F012BE', name: 'Tamil Nadu' },
+  ap: { color: '#FF851B', name: 'Andhra Pradesh' },
+  tg: { color: '#FFDC00', name: 'Telangana' },
+
+  an: { color: '', name: 'Andaman and Nicobar Islands', hidden: true },
+  ar: { color: '', name: 'Arunachal Pradesh', hidden: true },
+  as: { color: '', name: 'Assam', hidden: true },
+  br: { color: '', name: 'Bihar', hidden: true },
+  ch: { color: '', name: 'Chandigarh', hidden: true },
+  ct: { color: '', name: 'Chhattisgarh', hidden: true },
+  dd: { color: '', name: 'Daman and Diu', hidden: true },
+  dl: { color: '#3D9970', name: 'Delhi' },
+  dn: { color: '', name: 'Dadra and Nagar Haveli', hidden: true },
+  // dn: { color: '', name: 'Dadra and Nagar Haveli and Daman and Diu', hidden: true },
+  ga: { color: '', name: 'Goa', hidden: true },
+  gj: { color: '', name: 'Gujarat', hidden: true },
+  hp: { color: '', name: 'Himachal Pradesh', hidden: true },
+  hr: { color: '', name: 'Haryana', hidden: true },
+  jh: { color: '', name: 'Jharkhand', hidden: true },
+  jk: { color: '', name: 'Jammu and Kashmir', hidden: true },
+  la: { color: '', name: 'Ladakh', hidden: true },
+  ld: { color: '', name: 'Lakshadweep', hidden: true },
+  ml: { color: '', name: 'Meghalaya', hidden: true },
+  mn: { color: '', name: 'Manipur', hidden: true },
+  mp: { color: 'rgb(115 , 161, 62)', name: 'Madhya Pradesh', hidden: true },
+  mz: { color: '', name: 'Mizoram', hidden: true },
+  nl: { color: '', name: 'Nagaland', hidden: true },
+  or: { color: '', name: 'Odisha', hidden: true },
+  pb: { color: '', name: 'Punjab', hidden: true },
+  py: { color: '', name: 'Puducherry', hidden: true },
+  rj: { color: '', name: 'Rajasthan', hidden: true },
+  sk: { color: '', name: 'Sikkim', hidden: true },
+  tr: { color: '', name: 'Tripura', hidden: true },
+  up: { color: '', name: 'Uttar Pradesh', hidden: true },
+  ut: { color: '', name: 'Uttarakhand', hidden: true },
+  wb: { color: '', name: 'West Bengal', hidden: true },
+  un: { color: '', name: 'Unassigned', hidden: true },
+}
+
+async function fetchData(dataElement) {
+  // const apiBaseUrl = 'https://raw.githubusercontent.com/covid19india/api/master'
+  const apiBaseUrl = 'https://api.covid19india.org'
+  // const targetUrl = `https://cors-anywhere.herokuapp.com/${apiBaseUrl}`
+  const targetUrl = `${apiBaseUrl}`
+  const apiUrl = `${targetUrl}/${dataElement}.json`
+
+  console.info('getting data from ', apiUrl)
+  let data = await fetch(apiUrl).then(res => res.json())
+  console.info('got data from ', apiUrl, data)
+  return data
+}
+
+async function getAllData() {
+  const dataElements = {
+    // dataAllV5: 'data-all.min.json',
+    // timeseriesAllV5: 'timeseries-all.min.json',
+    data: 'data',
+    state_district_wise: 'state_district_wise',
+    states_daily: 'states_daily',
+    state_test_data: 'state_test_data',
+    misc: 'misc',
+    // 'v4/data',
+    // data_all_v4: 'v4/data-all',
+    // 'v4/timeseries',
+  }
+
+  try {
+    let all = await Promise.allSettled(Object.entries(dataElements).map(async ([key, value]) => {
+      const data = await fetchData(value)
+      return { key, data }
+    }))
+
+    const data = {}
+    all.forEach(i => {
+      data[i.value.key] = i.value.data
+    })
+    return data
+  } catch (err) {
+    console.error(err)
+    alert('Error getting data:' + err.message)
+  }
+}
+
+
+function subtractDays(dateStr, days) {
+  const date = new Date(dateStr)
+  date.setDate(date.getDate() - days);
+  const [dd, mm, yyyy] = date.toLocaleDateString().split('/')
+  newDateStr = `${yyyy}-${mm}-${dd}`
+  return newDateStr
+}
+
+function getChange(state, curDate, days = 1, status = 'confirmed') {
+  const prevDate = subtractDays(curDate, days)
+  if (state.dayWise[prevDate]) {
+    const curDayNum = state.dayWise[curDate][status].today
+    const prevDayNum =  (state.dayWise[prevDate] && state.dayWise[prevDate][status].today) || 0
+
+    const change = curDayNum - prevDayNum
+    const percent = +((change / prevDayNum) * 100).toFixed(2)
+    return { change, percent }
+  }
+  return { change: state.dayWise[curDate][status], percent: 0 }
+}
+
+window.onload = async function () {
+  let data = await getAllData()
+  console.log(data)
+  const statesDailyRaw = data.states_daily.states_daily
+  const stateTotalRaw = data.data.statewise
+
+  console.log(statesDailyRaw)
+  console.log(stateTotalRaw)
+
+  const stateWise = {}
+  for (let st in stateMap) {
+    stateWise[st] = {
+      stateCode: st,
+      name: stateMap[st].name,
+      dayWise: {},
+      total: {
+        confirmed: 0,
+        deceased: 0,
+        recovered: 0,
+      },
+    }
+  }
+
+  stateTotalRaw.forEach(s => {
+    const st = s.statecode.toLowerCase()
+    if (!stateWise[st]) {
+      console.log(s)
+    }
+    stateWise[st].total.confirmed_ = +s.confirmed
+    stateWise[st].total.deceased_ = +s.deaths
+    stateWise[st].total.recovered_ = +s.recovered
+  })
+
+  statesDailyRaw.forEach(sd => {
+    const status = sd.status.toLowerCase()
+    const dateStr = sd.dateymd
+
+    for (let st in stateMap) {
+      stateWise[st].dayWise[dateStr] = stateWise[st].dayWise[dateStr] || {
+        confirmed: {
+          today: 0,
+          total: 0,
+          weeklyChange: {},
+          dailyChange: {},
+        },
+        deceased: {
+          today: 0,
+          total: 0,
+          dailyChange: {},
+          weeklyChange: {},
+        },
+        recovered: {
+          today: 0,
+          total: 0,
+          dailyChange: {},
+          weeklyChange: {},
+        },
+      }
+
+      stateWise[st].latestDate = dateStr
+
+      const curNum = +sd[st]
+      stateWise[st].dayWise[dateStr][status].today = curNum
+      stateWise[st].total[status] = stateWise[st].total[status] + curNum
+
+      stateWise[st].dayWise[dateStr][status].total = stateWise[st].total[status]
+    }
+  })
+  console.log(stateWise)
+
+
+  for (let st in stateWise) {
+    const state = stateWise[st]
+    // const change = getWOWChange(state, state.latestDate, 'confirmed')
+
+    for (let dt in state.dayWise) {
+      state.dayWise[dt].confirmed.dailyChange = getChange(state, dt, 1, 'confirmed')
+      state.dayWise[dt].confirmed.weeklyChange = getChange(state, dt, 7, 'confirmed')
+    }
+  }
+  console.log(stateWise)
+
+  function drawChartJs({ dayWise }) {
+    const labels = Object.keys(dayWise)
+    const dataDaily = Object.entries(dayWise).map(([key, val]) => {
+      return { date: key, val: val.confirmed.today }
+    }).map(i => i.val)
+    const dataWeeklyChange = Object.entries(dayWise).map(([key, val]) => {
+      return { date: key, val: val.confirmed.weeklyChange.change }
+    }).map(i => i.val)
+
+    const data = {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Dataset 1',
+          data: dataWeeklyChange,
+          borderColor: 'blue',
+          type: 'line',
+          order: 1
+        },
+        {
+          label: 'Dataset 1',
+          data: dataDaily,
+          backgroundColor: 'red',
+          // borderColor: Utils.CHART_COLORS.red,
+          // backgroundColor: Utils.transparentize(Utils.CHART_COLORS.red, 0.5),
+          order: 2
+        },
+      ]
+    };
+    const config = {
+      type: 'bar',
+      data,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Chart.js Combined Line/Bar Chart'
+          }
+        }
+      },
+    };
+    const ctx = document.getElementById('sample-chart-js').getContext('2d');
+    const chart = new Chart(ctx, config)
+  }
+
+  function drawChartApex() {
+    const st = 'ka'
+    const dayWise = stateWise[st].dayWise
+
+    const labels = Object.keys(dayWise)
+    const dataDaily = Object.entries(dayWise).map(([key, val]) => {
+      return { date: key, val: val.confirmed.today }
+    })
+    console.log(dataDaily)
+    const dataWeeklyChange = Object.entries(dayWise).map(([key, val]) => {
+      return { date: key, val: val.confirmed.weeklyChange.percent }
+    })
+    console.log(dataWeeklyChange)
+
+    const options = {
+      series: [
+        {
+          name: 'daily',
+          type: 'column',
+          data: dataDaily.map(i => i.val),
+        },
+        {
+          name: 'weekly change',
+          type: 'line',
+          data: dataWeeklyChange.map(i => i.val),
+          // data: dataDaily.map(i => i.val),
+        }
+      ],
+      chart: {
+        height: 350,
+        // type: 'bar',
+        // stacked: false,
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '50%',
+          dataLabels: {
+            position: 'top', // top, center, bottom
+          },
+        }
+      },
+
+      labels,
+      xaxis: {
+        type: 'datetime'
+      },
+      yaxis: {
+        title: {
+          text: 'Points',
+        },
+        // min: 0
+      },
+    }
+    const chart = new ApexCharts(document.querySelector(`#sample-chart-apex`), options);
+    chart.render();
+  }
+
+  const $statesSelect = document.getElementById('states-dropdown')
+  $statesSelect.addEventListener('change', function (e) {
+    let st = e.target.options[e.target.selectedIndex].value
+    drawChartJs(stateWise[st])
+    // drawChartApex()
+  })
+
+  Object.entries(stateWise).forEach(([st, state]) => {
+    let $opt = document.createElement('option')
+    $opt.value = st
+    $opt.text = state.name
+    $statesSelect.appendChild($opt)
+  })
+}
+</script>
+</body>
+</html>
