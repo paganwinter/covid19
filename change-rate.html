@@ -18,7 +18,7 @@ body {
   <option>select state</option>
 </select>
 <div id="sample-chart-apex"></div>
-<canvas id="sample-chart-js" style="width: 400px; height: 200px;"></canvas>
+<canvas id="sample-chart-js" style="width: 400px; height: 800px;"></canvas>
 
 <script>
 // https://raw.githubusercontent.com/covid19india/api/master/data.json
@@ -321,6 +321,8 @@ window.onload = async function () {
     chart.render();
   }
 
+  drawChartJs(stateWise['tt'])
+  // populate state drop down list
   const $statesSelect = document.getElementById('states-dropdown')
   $statesSelect.addEventListener('change', function (e) {
     let st = e.target.options[e.target.selectedIndex].value
