@@ -7,10 +7,24 @@
 body {
   font-family: Arial;
 }
+table {
+  border: 1px solid #888;
+  border-collapse: collapse;
+}
+td, th {
+  border: 1px solid #888;
+  border-collapse: collapse;
+}
+
+.confirmed-today, .weekly-change {
+  text-align: right;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js" integrity="sha512-RNLkV3d+aLtfcpEyFG8jRbnWHxUqVZozacROI4J2F1sTaDqo1dPQYs01OMi1t1w9Y2FdbSCDSQ2ZVdAC8bzgAg==" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -19,6 +33,30 @@ body {
 </select>
 <div id="sample-chart-apex"></div>
 <canvas id="sample-chart-js" style="width: 400px; height: 800px;"></canvas>
+
+
+
+<div id="states-table"></div>
+<script id="states-table-tpl" type="text/x-handlebars-template">
+  <table>
+    <tr>
+      <th>State</th>
+      <th>Today</th>
+      <th>Weekly Change</th>
+      <th>% change</th>
+    </tr>
+    {{#each data}}
+      <tr>
+        <td>{{this.name}}</td>
+        <td class="confirmed-today">{{this.today}}</td>
+        <td class="weekly-change">{{this.weeklyChange}}</td>
+        <td class="weekly-change">{{this.weeklyChangePerc}}%</td>
+      </tr>
+    {{/each}}
+  </table>
+</script>
+
+
 
 <script>
 // https://raw.githubusercontent.com/covid19india/api/master/data.json
@@ -115,7 +153,9 @@ async function getAllData() {
 function subtractDays(dateStr, days) {
   const date = new Date(dateStr)
   date.setDate(date.getDate() - days);
-  const [dd, mm, yyyy] = date.toLocaleDateString().split('/')
+  let [mm, dd, yyyy] = date.toLocaleDateString().split('/')
+  mm = mm.padStart(2, '0')
+  dd = dd.padStart(2, '0')
   newDateStr = `${yyyy}-${mm}-${dd}`
   return newDateStr
 }
@@ -130,8 +170,9 @@ function getChange(state, curDate, days = 1, status = 'confirmed') {
     const percent = +((change / prevDayNum) * 100).toFixed(2)
     return { change, percent }
   }
-  return { change: state.dayWise[curDate][status], percent: 0 }
+  return { change: state.dayWise[curDate][status].today, percent: 0 }
 }
+
 
 window.onload = async function () {
   let data = await getAllData()
@@ -321,7 +362,6 @@ window.onload = async function () {
     chart.render();
   }
 
-  drawChartJs(stateWise['tt'])
   // populate state drop down list
   const $statesSelect = document.getElementById('states-dropdown')
   $statesSelect.addEventListener('change', function (e) {
@@ -336,7 +376,32 @@ window.onload = async function () {
     $opt.text = state.name
     $statesSelect.appendChild($opt)
   })
+  drawChartJs(stateWise['tt'])
+
+
+
+  const tableData = {}
+  for (let st in stateWise) {
+    const state = stateWise[st]
+    const today = state.dayWise[state.latestDate].confirmed.today.toLocaleString()
+    const weeklyChange = state.dayWise[state.latestDate].confirmed.weeklyChange.change.toLocaleString()
+    const weeklyChangePerc = state.dayWise[state.latestDate].confirmed.weeklyChange.percent.toFixed(0)
+    tableData[st] = {
+      name: state.name,
+      today,
+      weeklyChange,
+      weeklyChangePerc,
+    }
+  }
+  console.log(stateWise)
+  console.log(tableData)
+  const template = Handlebars.compile(document.getElementById('states-table-tpl').innerHTML);
+  const stateTblData = { data: tableData }
+  document.getElementById('states-table').innerHTML = template(stateTblData)
 }
 </script>
+
+
+
 </body>
 </html>
