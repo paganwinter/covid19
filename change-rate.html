@@ -159,7 +159,7 @@ async function getAllData() {
 function subtractDays(dateStr, days) {
   const date = new Date(dateStr)
   date.setDate(date.getDate() - days);
-  let [mm, dd, yyyy] = date.toLocaleDateString().split('/')
+  let [dd, mm, yyyy] = date.toLocaleDateString().split('/')
   mm = mm.padStart(2, '0')
   dd = dd.padStart(2, '0')
   newDateStr = `${yyyy}-${mm}-${dd}`
