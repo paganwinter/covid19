@@ -19,6 +19,12 @@ td, th {
 .confirmed-today, .weekly-change {
   text-align: right;
 }
+.weekly-change-up {
+  background: #fcc;
+}
+.weekly-change-down {
+  background: #cfc;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -34,14 +40,14 @@ td, th {
     <tr>
       <th>State</th>
       <th>Today</th>
-      <th>Weekly Change</th>
+      <th>Weekly change</th>
       <th>% change</th>
     </tr>
     {{#each data}}
       <tr>
         <td>{{this.name}}</td>
         <td class="confirmed-today">{{this.today}}</td>
-        <td class="weekly-change">{{this.weeklyChange}}</td>
+        <td class="weekly-change weekly-change-{{this.weeklyChangeUpDn}}">{{this.weeklyChange}}</td>
         <td class="weekly-change">{{this.weeklyChangePerc}}%</td>
       </tr>
     {{/each}}
@@ -269,16 +275,16 @@ window.onload = async function () {
       labels: labels,
       datasets: [
         {
-          label: 'Daily confirmed',
+          label: 'Weekly change',
           data: dataWeeklyChange,
-          borderColor: 'blue',
+          borderColor: '#3399ff',
           type: 'line',
           order: 1
         },
         {
-          label: 'Weekly change',
+          label: 'Daily confirmed',
           data: dataDaily,
-          backgroundColor: 'red',
+          backgroundColor: '#fcc',
           // borderColor: Utils.CHART_COLORS.red,
           // backgroundColor: Utils.transparentize(Utils.CHART_COLORS.red, 0.5),
           order: 2
@@ -384,14 +390,20 @@ window.onload = async function () {
   for (let st in stateWise) {
     const state = stateWise[st]
     const today = state.dayWise[state.latestDate].confirmed.today.toLocaleString()
-    const weeklyChange = state.dayWise[state.latestDate].confirmed.weeklyChange.change.toLocaleString()
-    const weeklyChangePerc = state.dayWise[state.latestDate].confirmed.weeklyChange.percent.toFixed(0)
+    let weeklyChange = state.dayWise[state.latestDate].confirmed.weeklyChange.change
+    let weeklyChangePerc = state.dayWise[state.latestDate].confirmed.weeklyChange.percent
+    weeklyChangePerc = (isNaN(weeklyChangePerc) || weeklyChangePerc === Math.Infinity) ? 0 : weeklyChangePerc
+    weeklyChangePerc = (weeklyChangePerc == Infinity) ? 0 : weeklyChangePerc
+    let weeklyChangeUpDn = (Number(weeklyChange) > 0) ? 'up' : 'down'
+
     tableData[st] = {
       name: state.name,
       today,
-      weeklyChange,
-      weeklyChangePerc,
+      weeklyChange: weeklyChange.toLocaleString(),
+      weeklyChangeUpDn,
+      weeklyChangePerc: weeklyChangePerc.toFixed(0),
     }
+    console.log(st, weeklyChangeUpDn, weeklyChange, Number(weeklyChange))
   }
   console.log(stateWise)
   console.log(tableData)
