@@ -59,7 +59,7 @@ td, th {
   <option>select state</option>
 </select>
 <div id="sample-chart-apex"></div>
-<canvas id="sample-chart-js" style="width: 400px; height: 800px;"></canvas>
+<canvas id="sample-chart-js" style="width: 400px; height: 400px;"></canvas>
 
 
 
@@ -159,10 +159,8 @@ async function getAllData() {
 function subtractDays(dateStr, days) {
   const date = new Date(dateStr)
   date.setDate(date.getDate() - days);
-  let [dd, mm, yyyy] = date.toLocaleDateString().split('/')
-  mm = mm.padStart(2, '0')
-  dd = dd.padStart(2, '0')
-  newDateStr = `${yyyy}-${mm}-${dd}`
+  var newDateStr = new Date(date.getTime() - (date.getTimezoneOffset() * 60000 ))
+    .toISOString().split('T')[0]
   return newDateStr
 }
 
@@ -258,6 +256,18 @@ window.onload = async function () {
     for (let dt in state.dayWise) {
       state.dayWise[dt].confirmed.dailyChange = getChange(state, dt, 1, 'confirmed')
       state.dayWise[dt].confirmed.weeklyChange = getChange(state, dt, 7, 'confirmed')
+
+      state.dayWise[dt].confirmed.thisWeekTotal = 0
+      state.dayWise[dt].confirmed.prevWeekTotal = 0
+      for (let i = 0; i < 7; i++) {
+        const d1 = subtractDays(dt, i)
+        const cnt1 = (state.dayWise[d1] && state.dayWise[d1].confirmed.today) || 0
+        state.dayWise[dt].confirmed.thisWeekTotal += cnt1
+
+        const d2 = subtractDays(dt, i + 7)
+        const cnt2 = (state.dayWise[d2] && state.dayWise[d2].confirmed.today) || 0
+        state.dayWise[dt].confirmed.prevWeekTotal += cnt2
+      }
     }
   }
   console.log(stateWise)
@@ -277,14 +287,16 @@ window.onload = async function () {
         {
           label: 'Weekly change',
           data: dataWeeklyChange,
-          borderColor: '#3399ff',
-          type: 'line',
+          borderColor: '#f00',
+          backgroundColor: '#f00',
           order: 1
         },
         {
           label: 'Daily confirmed',
           data: dataDaily,
-          backgroundColor: '#fcc',
+          backgroundColor: '#9cf',
+          type: 'line',
+          pointRadius: 0,
           // borderColor: Utils.CHART_COLORS.red,
           // backgroundColor: Utils.transparentize(Utils.CHART_COLORS.red, 0.5),
           order: 2
