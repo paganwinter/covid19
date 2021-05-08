@@ -268,18 +268,42 @@ window.onload = async function () {
         const cnt2 = (state.dayWise[d2] && state.dayWise[d2].confirmed.today) || 0
         state.dayWise[dt].confirmed.prevWeekTotal += cnt2
       }
+
+      state.dayWise[dt].confirmed.weekOnWeekChange = (state.dayWise[dt].confirmed.thisWeekTotal - state.dayWise[dt].confirmed.prevWeekTotal) / 7
     }
   }
   console.log(stateWise)
 
   function drawChartJs({ dayWise }) {
     const labels = Object.keys(dayWise)
-    const dataDaily = Object.entries(dayWise).map(([key, val]) => {
+
+    const entries = Object.entries(dayWise)
+    let dataWeeklyChange
+    let dataDaily
+
+    dataDaily = entries.map(([key, val]) => {
       return { date: key, val: val.confirmed.today }
     }).map(i => i.val)
-    const dataWeeklyChange = Object.entries(dayWise).map(([key, val]) => {
+    dataWeeklyChange = entries.map(([key, val]) => {
       return { date: key, val: val.confirmed.weeklyChange.change }
     }).map(i => i.val)
+
+    /*
+    dataWeeklyChange = entries.map(([key, val], i) => {
+      const DAYS = 7
+      let result = 0
+      entries.slice(i - DAYS, i).forEach(([k, v]) => {
+        if (v && v.confirmed) result += v.confirmed.today
+      })
+      return { date: key, val: result }
+    }).map(i => i.val)
+    */
+
+    let weekOnWeekChange = entries.map(([key, val], i) => {
+      // console.log(val.confirmed.weekOnWeekChange)
+      return val.confirmed.weekOnWeekChange
+    })
+
 
     const data = {
       labels: labels,
@@ -289,6 +313,13 @@ window.onload = async function () {
           data: dataWeeklyChange,
           borderColor: '#f00',
           backgroundColor: '#f00',
+          order: 1
+        },
+        {
+          label: '7 day change',
+          data: weekOnWeekChange,
+          // borderColor: '#f00',
+          backgroundColor: '#ff9933',
           order: 1
         },
         {
@@ -396,6 +427,16 @@ window.onload = async function () {
   })
   drawChartJs(stateWise['tt'])
 
+  const entries = Object.entries(stateWise['tt'].dayWise)
+  const test = entries.map(([key, val], i) => {
+    const DAYS = 7
+    let result = 0
+    entries.slice(i - DAYS, i).forEach(([k, v]) => {
+      if (v && v.confirmed) result += v.confirmed.today
+    })
+    return { date: key, val: result }
+  }).map(i => i.val)
+
 
 
   const tableData = {}
@@ -415,7 +456,7 @@ window.onload = async function () {
       weeklyChangeUpDn,
       weeklyChangePerc: weeklyChangePerc.toFixed(0),
     }
-    console.log(st, weeklyChangeUpDn, weeklyChange, Number(weeklyChange))
+    // console.log(st, weeklyChangeUpDn, weeklyChange, Number(weeklyChange))
   }
   console.log(stateWise)
   console.log(tableData)
