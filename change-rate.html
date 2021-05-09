@@ -59,6 +59,12 @@ td, th {
   </table>
 </script>
 
+<select id="states-dropdown">
+  <option>select state</option>
+</select>
+<div id="sample-chart-apex"></div>
+<canvas id="sample-chart-js" style="width: 400px; height: 400px;"></canvas>
+
 
 <div id="states-table"></div>
 <script id="states-table-tpl" type="text/x-handlebars-template">
@@ -71,7 +77,7 @@ td, th {
     </tr>
     {{#each data}}
       <tr>
-        <td>{{this.name}}</td>
+        <td onclick="updateChart('{{this.code}}')">{{this.name}}</td>
         <td class="confirmed-today">{{this.today}}</td>
         <td class="weekly-change weekly-change-{{this.weeklyChangeUpDn}}">{{this.weeklyChange}}</td>
         <td class="weekly-change">{{this.weeklyChangePerc}}%</td>
@@ -81,11 +87,6 @@ td, th {
 </script>
 
 
-<select id="states-dropdown">
-  <option>select state</option>
-</select>
-<div id="sample-chart-apex"></div>
-<canvas id="sample-chart-js" style="width: 400px; height: 400px;"></canvas>
 
 
 
@@ -204,6 +205,7 @@ function getChange(state, curDate, days = 1, status = 'confirmed') {
   return { change: state.dayWise[curDate][status].today, percent: 0 }
 }
 
+let updateChart
 
 window.onload = async function () {
   let data = await getAllData()
@@ -300,6 +302,13 @@ window.onload = async function () {
     }
   }
   console.log(stateWise)
+
+
+  updateChart = function(st) {
+    console.log(st)
+    drawChartJs(stateWise[st])
+  }
+
 
   function drawChartJs({ dayWise }) {
     const labels = Object.keys(dayWise)
@@ -443,7 +452,8 @@ window.onload = async function () {
   const $statesSelect = document.getElementById('states-dropdown')
   $statesSelect.addEventListener('change', function (e) {
     let st = e.target.options[e.target.selectedIndex].value
-    drawChartJs(stateWise[st])
+    // drawChartJs(stateWise[st])
+    updateChart(st)
     // drawChartApex()
   })
 
@@ -453,7 +463,8 @@ window.onload = async function () {
     $opt.text = state.name
     $statesSelect.appendChild($opt)
   })
-  drawChartJs(stateWise['tt'])
+  // drawChartJs(stateWise['tt'])
+  updateChart('tt')
 
   const tableData = {}
   for (let st in stateWise) {
@@ -466,6 +477,7 @@ window.onload = async function () {
     let weeklyChangeUpDn = (Number(weeklyChange) > 0) ? 'up' : 'down'
 
     tableData[st] = {
+      code: st,
       name: state.name,
       today,
       weeklyChange: weeklyChange.toLocaleString(),
