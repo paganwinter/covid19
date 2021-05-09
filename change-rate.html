@@ -47,14 +47,13 @@ td, th {
 <script id="states-heat-map-tpl" type="text/x-handlebars-template">
   <table>
     <tr>
-      <th>State</th>
     </tr>
     {{#each states}}
       <tr>
-        <td>{{@key}}</td>
         {{#each this}}
           <td class="" style="background: {{this.color}}" title="{{this.num}}"></td>
         {{/each}}
+        <td>{{@key}}</td>
       </tr>
     {{/each}}
   </table>
