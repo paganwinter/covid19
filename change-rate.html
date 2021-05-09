@@ -8,10 +8,18 @@ body {
   font-family: Arial;
 }
 table {
-  border: 1px solid #888;
   border-collapse: collapse;
 }
 td, th {
+  border-collapse: collapse;
+}
+
+
+#states-table table {
+  border: 1px solid #888;
+  border-collapse: collapse;
+}
+#states-table td, th {
   border: 1px solid #888;
   border-collapse: collapse;
 }
@@ -33,6 +41,25 @@ td, th {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js" integrity="sha512-RNLkV3d+aLtfcpEyFG8jRbnWHxUqVZozacROI4J2F1sTaDqo1dPQYs01OMi1t1w9Y2FdbSCDSQ2ZVdAC8bzgAg==" crossorigin="anonymous"></script>
 </head>
 <body>
+
+
+<div id="states-heat-map"></div>
+<script id="states-heat-map-tpl" type="text/x-handlebars-template">
+  <table>
+    <tr>
+      <th>State</th>
+    </tr>
+    {{#each states}}
+      <tr>
+        <td>{{@key}}</td>
+        {{#each this}}
+          <td class="" style="background: {{this}}"></td>
+        {{/each}}
+      </tr>
+    {{/each}}
+  </table>
+</script>
+
 
 <div id="states-table"></div>
 <script id="states-table-tpl" type="text/x-handlebars-template">
@@ -269,8 +296,7 @@ window.onload = async function () {
         const cnt2 = (state.dayWise[d2] && state.dayWise[d2].confirmed.today) || 0
         state.dayWise[dt].confirmed.prevWeekTotal += cnt2
       }
-
-      state.dayWise[dt].confirmed.weekOnWeekChange = (state.dayWise[dt].confirmed.thisWeekTotal - state.dayWise[dt].confirmed.prevWeekTotal) / 7
+      state.dayWise[dt].confirmed.avgWeekOnWeekChange = (state.dayWise[dt].confirmed.thisWeekTotal - state.dayWise[dt].confirmed.prevWeekTotal) / 7
     }
   }
   console.log(stateWise)
@@ -300,9 +326,8 @@ window.onload = async function () {
     }).map(i => i.val)
     */
 
-    let weekOnWeekChange = entries.map(([key, val], i) => {
-      // console.log(val.confirmed.weekOnWeekChange)
-      return val.confirmed.weekOnWeekChange
+    let avgWeekOnWeekChange = entries.map(([key, val], i) => {
+      return val.confirmed.avgWeekOnWeekChange
     })
 
 
@@ -318,8 +343,8 @@ window.onload = async function () {
           hidden: true,
         },
         {
-          label: '7 day change',
-          data: weekOnWeekChange,
+          label: 'avg 7 day change',
+          data: avgWeekOnWeekChange,
           // borderColor: '#f00',
           backgroundColor: '#ff9933',
           order: 1,
@@ -430,18 +455,6 @@ window.onload = async function () {
   })
   drawChartJs(stateWise['tt'])
 
-  const entries = Object.entries(stateWise['tt'].dayWise)
-  const test = entries.map(([key, val], i) => {
-    const DAYS = 7
-    let result = 0
-    entries.slice(i - DAYS, i).forEach(([k, v]) => {
-      if (v && v.confirmed) result += v.confirmed.today
-    })
-    return { date: key, val: result }
-  }).map(i => i.val)
-
-
-
   const tableData = {}
   for (let st in stateWise) {
     const state = stateWise[st]
@@ -466,6 +479,71 @@ window.onload = async function () {
   const template = Handlebars.compile(document.getElementById('states-table-tpl').innerHTML);
   const stateTblData = { data: tableData }
   document.getElementById('states-table').innerHTML = template(stateTblData)
+
+
+  const entries = Object.entries(stateWise['tt'].dayWise)
+  const test = entries.map(([key, val], i) => {
+    const DAYS = 7
+    let result = 0
+    entries.slice(i - DAYS, i).forEach(([k, v]) => {
+      if (v && v.confirmed) result += v.confirmed.today
+    })
+    return { date: key, val: result }
+  }).map(i => i.val)
+
+
+
+  const heatMapTpl = Handlebars.compile(document.getElementById('states-heat-map-tpl').innerHTML);
+  const heatMapData = { states: {} }
+  Object.entries(stateWise).forEach(([st, state]) => {
+    const numList = Object.entries(state.dayWise)
+      .map(([dt, data]) => {
+        // return data.confirmed.today
+        return data.confirmed.avgWeekOnWeekChange
+        // return data.confirmed.weeklyChange.change
+      })
+      // .slice(-500)
+
+    const stateMin = Math.min(...numList)
+    const stateMax = Math.max(...numList)
+    heatMapData.states[state.name] = numList.map((num) => {
+      const perc = (stateMax - num) / stateMax * 100
+      return `rgb(255,${perc},${perc})`
+    })
+  })
+
+  document.getElementById('states-heat-map').innerHTML = heatMapTpl(heatMapData)
+}
+
+
+function colorGradient(fadeFraction, rgbColor1, rgbColor2, rgbColor3) {
+    var color1 = rgbColor1;
+    var color2 = rgbColor2;
+    var fade = fadeFraction;
+
+    // Do we have 3 colors for the gradient? Need to adjust the params.
+    if (rgbColor3) {
+      fade = fade * 2;
+
+      // Find which interval to use and adjust the fade percentage
+      if (fade >= 1) {
+        fade -= 1;
+        color1 = rgbColor2;
+        color2 = rgbColor3;
+      }
+    }
+
+    var diffRed = color2.red - color1.red;
+    var diffGreen = color2.green - color1.green;
+    var diffBlue = color2.blue - color1.blue;
+
+    var gradient = {
+      red: parseInt(Math.floor(color1.red + (diffRed * fade)), 10),
+      green: parseInt(Math.floor(color1.green + (diffGreen * fade)), 10),
+      blue: parseInt(Math.floor(color1.blue + (diffBlue * fade)), 10),
+    };
+
+    return 'rgb(' + gradient.red + ',' + gradient.green + ',' + gradient.blue + ')';
 }
 </script>
 
