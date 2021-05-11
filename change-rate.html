@@ -29,10 +29,10 @@ td, th {
 .confirmed-today, .weekly-change {
   text-align: right;
 }
-.weekly-change-up {
+.up-down-status-up {
   background: #fcc;
 }
-.weekly-change-down {
+.up-down-status-down {
   background: #cfc;
 }
 </style>
@@ -47,15 +47,15 @@ td, th {
 
 <div id="states-heat-map"></div>
 <script id="states-heat-map-tpl" type="text/x-handlebars-template">
-  <table>
+  <table style="width: 100%">
     <tr>
     </tr>
     {{#each states}}
       <tr>
         {{#each this}}
-          <td class="" style="background: {{this.color}}" title="{{this.num}}"></td>
+          <td class="" style="background: {{this.color}}; border-bottom: 1px solid #ccc;" title="{{this.num}}"></td>
         {{/each}}
-        <td>{{@key}}</td>
+        <td style="border-bottom: 1px solid #ccc;">{{@key}}</td>
       </tr>
     {{/each}}
   </table>
@@ -75,14 +75,16 @@ td, th {
       <th>State</th>
       <th>Today</th>
       <th>Weekly change</th>
-      <th>% change</th>
+      <th>% Weekly change</th>
+      <th>avg 7 day total diff</th>
     </tr>
     {{#each data}}
       <tr>
         <td onclick="updateChart('{{this.code}}')">{{this.name}}</td>
         <td class="confirmed-today">{{this.today}}</td>
-        <td class="weekly-change weekly-change-{{this.weeklyChangeUpDn}}">{{this.weeklyChange}}</td>
+        <td class="weekly-change up-down-status-{{this.weeklyChangeUpDn}}">{{this.weeklyChange}}</td>
         <td class="weekly-change">{{this.weeklyChangePerc}}%</td>
+        <td class="wow-change up-down-status-{{this.avgWoWChangeUpDown}}">{{this.avgWeekOnWeekChange}}</td>
       </tr>
     {{/each}}
   </table>
@@ -312,7 +314,7 @@ window.onload = async function () {
   }
 
 
-  function drawChartJs({ dayWise }) {
+  function drawChartJs({ name, dayWise }) {
     const labels = Object.keys(dayWise)
 
     const entries = Object.entries(dayWise)
@@ -346,19 +348,20 @@ window.onload = async function () {
       labels: labels,
       datasets: [
         {
-          label: 'Weekly change',
-          data: dataWeeklyChange,
-          borderColor: '#f00',
-          backgroundColor: '#f00',
-          order: 1,
-          hidden: true,
-        },
-        {
           label: 'avg 7 day change',
           data: avgWeekOnWeekChange,
+          type: 'line',
+          borderColor: '#f00',
+          // backgroundColor: '#ff9933',
+          order: 1,
+        },
+        {
+          label: 'Weekly change',
+          data: dataWeeklyChange,
           // borderColor: '#f00',
           backgroundColor: '#ff9933',
           order: 1,
+          // hidden: true,
         },
         {
           label: 'Daily confirmed',
@@ -372,6 +375,7 @@ window.onload = async function () {
         },
       ]
     };
+    console.log(name)
     const config = {
       type: 'bar',
       data,
@@ -383,7 +387,7 @@ window.onload = async function () {
           },
           title: {
             display: true,
-            text: 'Chart.js Combined Line/Bar Chart'
+            text: name,
           }
         }
       },
@@ -473,9 +477,10 @@ window.onload = async function () {
     const today = state.dayWise[state.latestDate].confirmed.today.toLocaleString()
     let weeklyChange = state.dayWise[state.latestDate].confirmed.weeklyChange.change
     let weeklyChangePerc = state.dayWise[state.latestDate].confirmed.weeklyChange.percent
+    const { avgWeekOnWeekChange } = state.dayWise[state.latestDate].confirmed
     weeklyChangePerc = (isNaN(weeklyChangePerc) || weeklyChangePerc === Math.Infinity) ? 0 : weeklyChangePerc
-    weeklyChangePerc = (weeklyChangePerc == Infinity) ? 0 : weeklyChangePerc
     let weeklyChangeUpDn = (Number(weeklyChange) > 0) ? 'up' : 'down'
+    const avgWoWChangeUpDown = (avgWeekOnWeekChange > 0) ? 'up' : 'down'
 
     tableData[st] = {
       code: st,
@@ -484,6 +489,9 @@ window.onload = async function () {
       weeklyChange: weeklyChange.toLocaleString(),
       weeklyChangeUpDn,
       weeklyChangePerc: weeklyChangePerc.toFixed(0),
+
+      avgWeekOnWeekChange,
+      avgWoWChangeUpDown,
     }
     // console.log(st, weeklyChangeUpDn, weeklyChange, Number(weeklyChange))
   }
@@ -494,26 +502,30 @@ window.onload = async function () {
   document.getElementById('states-table').innerHTML = template(stateTblData)
 
 
-  const entries = Object.entries(stateWise['tt'].dayWise)
-  const test = entries.map(([key, val], i) => {
-    const DAYS = 7
-    let result = 0
-    entries.slice(i - DAYS, i).forEach(([k, v]) => {
-      if (v && v.confirmed) result += v.confirmed.today
-    })
-    return { date: key, val: result }
-  }).map(i => i.val)
+  // const entries = Object.entries(stateWise['tt'].dayWise)
+  // const test = entries.map(([key, val], i) => {
+  //   const DAYS = 7
+  //   let result = 0
+  //   entries.slice(i - DAYS, i).forEach(([k, v]) => {
+  //     if (v && v.confirmed) result += v.confirmed.today
+  //   })
+  //   return { date: key, val: result }
+  // }).map(i => i.val)
 
 
 
   const heatMapTpl = Handlebars.compile(document.getElementById('states-heat-map-tpl').innerHTML);
+  const $heatMapEl = document.getElementById('states-heat-map')
+  updateHeatMap(stateWise, heatMapTpl, $heatMapEl)
+}
+
+function updateHeatMap(stateWise, heatMapTpl, heatMapEl) {
   const heatMapData = { states: {} }
   Object.entries(stateWise).forEach(([st, state]) => {
     const numList = Object.entries(state.dayWise)
       .map(([dt, data]) => {
-        // return data.confirmed.today
-        return data.confirmed.avgWeekOnWeekChange
-        // return data.confirmed.weeklyChange.change
+        // return data.confirmed.avgWeekOnWeekChange
+        return data.confirmed.weeklyChange.change
       })
       // .slice(-500)
 
@@ -532,12 +544,10 @@ window.onload = async function () {
   })
   console.log(heatMapData.states.Maharashtra)
 
-  document.getElementById('states-heat-map').innerHTML = heatMapTpl(heatMapData)
+  heatMapEl.innerHTML = heatMapTpl(heatMapData)
 }
 
-function grad(i) {
-
-}
+function grad(i) {}
 
 /**
  * http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
