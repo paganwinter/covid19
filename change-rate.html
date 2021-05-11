@@ -53,7 +53,7 @@ td, th {
     {{#each states}}
       <tr>
         {{#each this}}
-          <td class="" style="background: {{this.color}}; border-bottom: 1px solid #ccc;" title="{{this.num}}"></td>
+          <td class="" style="background: {{this.color}}; border-bottom: 1px solid #ddd;" title="{{this.num}}"></td>
         {{/each}}
         <td style="border-bottom: 1px solid #ccc;">{{@key}}</td>
       </tr>
@@ -210,6 +210,8 @@ function getChange(state, curDate, days = 1, status = 'confirmed') {
 }
 
 let updateChart
+let updateHeatMap
+const stateWise = {}
 
 window.onload = async function () {
   let data = await getAllData()
@@ -220,7 +222,6 @@ window.onload = async function () {
   console.log(statesDailyRaw)
   console.log(stateTotalRaw)
 
-  const stateWise = {}
   for (let st in stateMap) {
     stateWise[st] = {
       stateCode: st,
@@ -348,15 +349,16 @@ window.onload = async function () {
       labels: labels,
       datasets: [
         {
-          label: 'avg 7 day change',
+          label: 'current 7 day vs prev 7 day diff (avg)',
           data: avgWeekOnWeekChange,
           type: 'line',
+          pointRadius: 0,
           borderColor: '#f00',
           // backgroundColor: '#ff9933',
           order: 1,
         },
         {
-          label: 'Weekly change',
+          label: 'current day vs 7 day back diff',
           data: dataWeeklyChange,
           // borderColor: '#f00',
           backgroundColor: '#ff9933',
@@ -364,7 +366,7 @@ window.onload = async function () {
           // hidden: true,
         },
         {
-          label: 'Daily confirmed',
+          label: 'daily confirmed',
           data: dataDaily,
           backgroundColor: '#9cf',
           type: 'line',
@@ -512,22 +514,21 @@ window.onload = async function () {
   //   return { date: key, val: result }
   // }).map(i => i.val)
 
-
-
-  const heatMapTpl = Handlebars.compile(document.getElementById('states-heat-map-tpl').innerHTML);
-  const $heatMapEl = document.getElementById('states-heat-map')
-  updateHeatMap(stateWise, heatMapTpl, $heatMapEl)
+  updateHeatMap(stateWise, false)
 }
 
-function updateHeatMap(stateWise, heatMapTpl, heatMapEl) {
+updateHeatMap = function (stateWise, avg7Day) {
+  const heatMapTpl = Handlebars.compile(document.getElementById('states-heat-map-tpl').innerHTML);
+  const heatMapEl = document.getElementById('states-heat-map')
+
   const heatMapData = { states: {} }
   Object.entries(stateWise).forEach(([st, state]) => {
-    const numList = Object.entries(state.dayWise)
-      .map(([dt, data]) => {
-        // return data.confirmed.avgWeekOnWeekChange
-        return data.confirmed.weeklyChange.change
-      })
-      // .slice(-500)
+    let numList
+    if (avg7Day) {
+      numList = Object.entries(state.dayWise).map(([dt, data]) => data.confirmed.avgWeekOnWeekChange)
+    } else {
+      numList = Object.entries(state.dayWise).map(([dt, data]) => data.confirmed.weeklyChange.change)
+    }
 
     const maxPos = Math.max(...(numList.filter(n => n > 0)))
     const maxNeg = Math.min(...(numList.filter(n => n <= 0)))
