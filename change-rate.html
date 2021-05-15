@@ -100,7 +100,9 @@ td, th {
 
 const stateMap = {
   tt: { color: 'rgb(0, 0, 0)', name: 'Total', hidden: true },
+  blr: { color: '#2ECC40', name: 'Bangalore' },
   ka: { color: '#2ECC40', name: 'Karnataka' },
+  bom: { color: '#2ECC40', name: 'Bombay' },
   mh: { color: '#0074D9', name: 'Maharashtra' },
   kl: { color: '#FF4136', name: 'Kerala' },
   tn: { color: '#F012BE', name: 'Tamil Nadu' },
@@ -213,6 +215,59 @@ let updateChart
 let updateHeatMap
 const stateWise = {}
 
+async function getDistData() {
+  let districtwiseRaw = await fetch('https://api.covid19india.org/csv/latest/districts.csv')
+    .then(res => res.text())
+  districtwiseRaw = districtwiseRaw
+    .split('\n')
+    .slice(1)
+    .map(row => {
+      const [date, state, dist, confirmed, recovered, deceased, other, tested] = row.split(',')
+      return { date, state, dist, confirmed, recovered, deceased, other, tested }
+    })
+
+  const distWise = {
+    blr: {
+      dayWise: {},
+      name: 'Bangalore',
+      stateCode: 'blr',
+    },
+    bom: {
+      dayWise: {},
+      name: 'Bombay',
+      stateCode: 'bom',
+    },
+    che: {},
+  }
+  const prev = {
+    blr: { confirmed: 0 },
+    bom: { confirmed: 0 },
+  }
+  districtwiseRaw.forEach(r => {
+    let code = ''
+    if (r.dist === 'Bengaluru Urban') {
+      code = 'blr'
+    }
+    if (r.dist === 'Mumbai') {
+      code = 'bom'
+    }
+    if (['blr', 'bom'].includes(code)) {
+      // console.log(r)
+      distWise[code].latestDate = r.date
+      distWise[code].dayWise[r.date] = {
+        confirmed: {
+          today: +r.confirmed - prev[code].confirmed,
+          total: +r.confirmed,
+          weeklyChange: {},
+          dailyChange: {},
+        },
+      }
+      prev[code].confirmed = +r.confirmed
+    }
+  })
+  return distWise
+}
+
 window.onload = async function () {
   let data = await getAllData()
   console.log(data)
@@ -221,6 +276,7 @@ window.onload = async function () {
 
   console.log(statesDailyRaw)
   console.log(stateTotalRaw)
+
 
   for (let st in stateMap) {
     stateWise[st] = {
@@ -280,7 +336,13 @@ window.onload = async function () {
       stateWise[st].dayWise[dateStr][status].total = stateWise[st].total[status]
     }
   })
-  console.log(stateWise)
+  console.log('stateWise', stateWise)
+
+  const districtwise = await getDistData()
+  console.log('districtwise', districtwise)
+  stateWise.blr = districtwise.blr
+  stateWise.bom = districtwise.bom
+  console.log('stateWise', stateWise)
 
 
   for (let st in stateWise) {
@@ -306,7 +368,7 @@ window.onload = async function () {
       state.dayWise[dt].confirmed.avgWeekOnWeekChange = +state.dayWise[dt].confirmed.avgWeekOnWeekChange.toFixed(2)
     }
   }
-  console.log(stateWise)
+  console.log('stateWise', stateWise)
 
 
   updateChart = function(st) {
@@ -539,7 +601,7 @@ updateHeatMap = function (stateWise, avg7Day) {
       ratio = +ratio.toFixed(2)
       let color = numberToColorHsl(ratio, 0, 1)
 
-      color = (num > 0) ? '#fcc' : '#cfc'
+      color = (num > 0) ? '#ffcccc' : '#00e600'
       return { num, color }
     })
   })
