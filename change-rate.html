@@ -604,8 +604,18 @@ updateHeatMap = function (stateWise, avg7Day) {
       color = (num > 0) ? '#ffcccc' : '#00e600'
       return { num, color }
     })
+
+    console.log(state.name, heatMapData.states[state.name].length)
+    if (heatMapData.states[state.name].length < heatMapData.states.Total.length) {
+      console.log(state)
+      const diff = heatMapData.states.Total.length - heatMapData.states[state.name].length
+      const filler = new Array(diff)
+      filler.fill({})
+      console.log(filler)
+      heatMapData.states[state.name] = filler.concat(heatMapData.states[state.name])
+    }
   })
-  console.log(heatMapData.states.Maharashtra)
+  console.log('heatMapData', heatMapData)
 
   heatMapEl.innerHTML = heatMapTpl(heatMapData)
 }
