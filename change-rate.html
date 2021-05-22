@@ -26,7 +26,7 @@ td, th {
   border-collapse: collapse;
 }
 
-.confirmed-today, .weekly-change {
+.confirmed-today, .weekly-change, .wow-change {
   text-align: right;
 }
 .up-down-status-up {
@@ -365,7 +365,7 @@ window.onload = async function () {
         state.dayWise[dt].confirmed.prevWeekTotal += cnt2
       }
       state.dayWise[dt].confirmed.avgWeekOnWeekChange = (state.dayWise[dt].confirmed.thisWeekTotal - state.dayWise[dt].confirmed.prevWeekTotal) / 7
-      state.dayWise[dt].confirmed.avgWeekOnWeekChange = +state.dayWise[dt].confirmed.avgWeekOnWeekChange.toFixed(2)
+      state.dayWise[dt].confirmed.avgWeekOnWeekChange = +state.dayWise[dt].confirmed.avgWeekOnWeekChange.toFixed()
     }
   }
   console.log('stateWise', stateWise)
@@ -552,9 +552,9 @@ window.onload = async function () {
       today,
       weeklyChange: weeklyChange.toLocaleString(),
       weeklyChangeUpDn,
-      weeklyChangePerc: weeklyChangePerc.toLocaleString(), // weeklyChangePerc.toFixed(0),
+      weeklyChangePerc: weeklyChangePerc.toFixed(0),
 
-      avgWeekOnWeekChange,
+      avgWeekOnWeekChange: avgWeekOnWeekChange.toLocaleString(),
       avgWoWChangeUpDown,
     }
     // console.log(st, weeklyChangeUpDn, weeklyChange, Number(weeklyChange))
