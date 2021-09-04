@@ -147,7 +147,7 @@ const stateMap = {
 
 async function fetchData(dataElement) {
   // const apiBaseUrl = 'https://raw.githubusercontent.com/covid19india/api/master'
-  const apiBaseUrl = 'https://api.covid19india.org'
+  const apiBaseUrl = 'https://data.covid19india.org'
   // const targetUrl = `https://cors-anywhere.herokuapp.com/${apiBaseUrl}`
   const targetUrl = `${apiBaseUrl}`
   const apiUrl = `${targetUrl}/${dataElement}.json`
@@ -216,7 +216,7 @@ let updateHeatMap
 const stateWise = {}
 
 async function getDistData() {
-  let districtwiseRaw = await fetch('https://api.covid19india.org/csv/latest/districts.csv')
+  let districtwiseRaw = await fetch('https://data.covid19india.org/csv/latest/districts.csv')
     .then(res => res.text())
   districtwiseRaw = districtwiseRaw
     .split('\n')
